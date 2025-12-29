@@ -2,18 +2,11 @@ package cache
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-)
-
-var (
-	ErrLockAcquireFailed    = errors.New("failed to acquire lock")                       // lock acquisition fails.
-	ErrLockReleaseUnlocked  = errors.New("cannot release an unlocked lock")              // trying to release a lock that doesn't exist.
-	ErrLockReleaseForbidden = errors.New("cannot release a lock that's no longer owned") // trying to release a lock owned by someone else.
 )
 
 // luaScriptUnlock is a Lua script for atomic lock release.

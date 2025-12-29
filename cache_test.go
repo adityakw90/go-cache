@@ -3,6 +3,7 @@ package cache
 import (
 	"testing"
 
+	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,11 @@ func TestNewCache(t *testing.T) {
 			wantErr: true,
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
 				assert.Nil(t, cache)
-				assert.IsType(t, &ErrInvalidConfig{}, err)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "redisClient", invalidConfigErr.Field())
+				assert.Equal(t, "cannot be nil", invalidConfigErr.Message())
 			},
 		},
 	}
@@ -290,21 +295,28 @@ func TestCache_getCacheKeyUsage(t *testing.T) {
 func TestErrInvalidConfig(t *testing.T) {
 	tests := []struct {
 		name      string
+		field     string
 		message   string
 		checkFunc func(t *testing.T, err error)
 	}{
 		{
 			name:    "error message",
+			field:   "redisClient",
 			message: "test error",
 			checkFunc: func(t *testing.T, err error) {
-				assert.Equal(t, "test error", err.Error())
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "invalid config redisClient : test error", err.Error())
+				assert.Equal(t, "redisClient", invalidConfigErr.Field())
+				assert.Equal(t, "test error", invalidConfigErr.Message())
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := &ErrInvalidConfig{Message: tt.message}
+			err := errs.NewInvalidConfigError(tt.field, tt.message)
 			if tt.checkFunc != nil {
 				tt.checkFunc(t, err)
 			}

@@ -13,6 +13,7 @@ import (
 
 func TestCache_Cached_Basic(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -64,6 +65,7 @@ func TestCache_Cached_Basic(t *testing.T) {
 
 func TestCache_Cached_WithVersioning(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -116,6 +118,7 @@ func TestCache_Cached_WithVersioning(t *testing.T) {
 
 func TestCache_Cached_WithCustomKey(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -177,6 +180,7 @@ func TestCache_Cached_WithCustomKey(t *testing.T) {
 
 func TestCache_Cached_DifferentArgs(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -229,6 +233,7 @@ func TestCache_Cached_DifferentArgs(t *testing.T) {
 
 func TestCache_Cached_FunctionError(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -255,6 +260,7 @@ func TestCache_Cached_FunctionError(t *testing.T) {
 
 func TestCache_Cached_DynamicTTL(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -304,6 +310,7 @@ func TestCache_Cached_DynamicTTL(t *testing.T) {
 
 func TestCache_Cached_DefaultPrefix(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -335,6 +342,7 @@ func TestCache_Cached_DefaultPrefix(t *testing.T) {
 
 func TestCache_Cached_ComplexTypes(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -401,6 +409,7 @@ func TestCache_Cached_ComplexTypes(t *testing.T) {
 
 func TestCache_Cached_DeserializeError(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 
@@ -437,6 +446,7 @@ func TestCache_Cached_DeserializeError(t *testing.T) {
 
 func TestCache_Cached_ConcurrentAccess(t *testing.T) {
 	redisClient := createTestRedisClient(t)
+	defer redisClient.Close()
 	cache, err := NewCache(redisClient)
 	require.NoError(t, err)
 

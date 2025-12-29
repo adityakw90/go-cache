@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+
+	"github.com/adityakw90/go-cache/internal/errs"
 )
 
 // Cache is the main cache structure.
@@ -40,7 +42,7 @@ type Cache struct {
 //	)
 func NewCache(redisClient *redis.Client, opts ...Option) (*Cache, error) {
 	if redisClient == nil {
-		return nil, &ErrInvalidConfig{Message: "redis client cannot be nil"}
+		return nil, errs.NewInvalidConfigError("redisClient", "cannot be nil")
 	}
 
 	options := defaultOptions()
@@ -145,13 +147,4 @@ func (c *Cache) getCacheKeyUsage(prefix string) []string {
 	}
 
 	return []string{}
-}
-
-// ErrInvalidConfig represents an invalid configuration error.
-type ErrInvalidConfig struct {
-	Message string
-}
-
-func (e *ErrInvalidConfig) Error() string {
-	return e.Message
 }
