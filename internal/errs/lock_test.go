@@ -2,7 +2,7 @@ package errs
 
 import "testing"
 
-func TestSentinelErrors(t *testing.T) {
+func TestErrs_Lock_SentinelErrors(t *testing.T) {
 	if ErrLockAcquireFailed == nil {
 		t.Error("ErrLockAcquireFailed should not be nil")
 	}

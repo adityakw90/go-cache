@@ -8,6 +8,7 @@ import (
 
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/hash"
+	"github.com/adityakw90/go-cache/internal/serialize"
 )
 
 // Cache is the main cache structure.
@@ -153,4 +154,14 @@ func (c *Cache) getCacheKeyUsage(prefix string) []string {
 // getCacheHash generates an MD5 hash from function name and arguments.
 func (c *Cache) getCacheHash(funcName string, args []interface{}) string {
 	return hash.CacheKey(funcName, args)
+}
+
+// serialize converts a value to []byte using Gob encoding.
+func (c *Cache) serialize(value interface{}) ([]byte, error) {
+	return serialize.Serialize(value)
+}
+
+// deserialize converts []byte to a value using Gob decoding.
+func (c *Cache) deserialize(data []byte, result interface{}) error {
+	return serialize.Deserialize(data, result)
 }

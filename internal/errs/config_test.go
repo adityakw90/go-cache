@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestErrInvalidConfig(t *testing.T) {
+func TestErrs_InvalidConfig(t *testing.T) {
 	tests := []struct {
 		name            string
 		err             error

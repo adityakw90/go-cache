@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestWrap(t *testing.T) {
+func TestErrs_Wrap(t *testing.T) {
 	originalErr := errors.New("original error")
 	wrappedErr := Wrap(originalErr, "context")
 
@@ -18,7 +18,7 @@ func TestWrap(t *testing.T) {
 	}
 }
 
-func TestWrapf(t *testing.T) {
+func TestErrs_Wrapf(t *testing.T) {
 	originalErr := errors.New("original error")
 	wrappedErr := Wrapf(originalErr, "context: %s", "test")
 
@@ -31,7 +31,7 @@ func TestWrapf(t *testing.T) {
 	}
 }
 
-func TestWrapNil(t *testing.T) {
+func TestErrs_WrapNil(t *testing.T) {
 	if Wrap(nil, "context") != nil {
 		t.Error("wrapping nil should return nil")
 	}
