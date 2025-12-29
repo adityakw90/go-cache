@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/adityakw90/go-cache/internal/errs"
+	"github.com/adityakw90/go-cache/internal/hash"
 )
 
 // Cache is the main cache structure.
@@ -147,4 +148,9 @@ func (c *Cache) getCacheKeyUsage(prefix string) []string {
 	}
 
 	return []string{}
+}
+
+// getCacheHash generates an MD5 hash from function name and arguments.
+func (c *Cache) getCacheHash(funcName string, args []interface{}) string {
+	return hash.CacheKey(funcName, args)
 }
