@@ -3,6 +3,7 @@ package cache
 import (
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/lock"
+	"github.com/adityakw90/go-cache/internal/serialize"
 )
 
 // re-export errors
@@ -15,7 +16,7 @@ var (
 	ErrLockReleaseForbidden = lock.ErrLockReleaseForbidden
 
 	// serialize errors
-	ErrSerializeNilValue    = errs.ErrSerializeNilValue
-	ErrDeserializeEmptyData = errs.ErrDeserializeEmptyData
-	ErrDeserializeResultNil = errs.ErrDeserializeResultNil
+	ErrSerializeNilValue    = serialize.ErrSerializeNilValue
+	ErrDeserializeEmptyData = serialize.ErrDeserializeEmptyData
+	ErrDeserializeResultNil = serialize.ErrDeserializeResultNil
 )

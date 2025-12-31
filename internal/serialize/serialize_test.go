@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +76,7 @@ func TestSerialize_Serialize(t *testing.T) {
 			name:        "nil value",
 			value:       nil,
 			wantErr:     true,
-			wantErrType: errs.ErrSerializeNilValue,
+			wantErrType: ErrSerializeNilValue,
 			wantErrMsg:  "cannot serialize nil value",
 			checkFunc:   nil,
 		},
@@ -198,7 +197,7 @@ func TestSerialize_Deserialize(t *testing.T) {
 			changeData:  []byte{},
 			result:      new(string),
 			wantErr:     true,
-			wantErrType: errs.ErrDeserializeEmptyData,
+			wantErrType: ErrDeserializeEmptyData,
 			wantErrMsg:  "cannot deserialize empty data",
 		},
 		{
@@ -207,7 +206,7 @@ func TestSerialize_Deserialize(t *testing.T) {
 			changeData:  nil,
 			result:      nil,
 			wantErr:     true,
-			wantErrType: errs.ErrDeserializeResultNil,
+			wantErrType: ErrDeserializeResultNil,
 			wantErrMsg:  "result interface cannot be nil",
 		},
 		{
