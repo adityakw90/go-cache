@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 )
@@ -47,7 +46,7 @@ func AcquireLock(
 		}
 
 		if !wait {
-			lock.Error = errs.ErrLockAcquireFailed
+			lock.Error = ErrLockAcquireFailed
 			return lock
 		}
 
@@ -78,9 +77,9 @@ func ReleaseLock(ctx context.Context, redisClient *redis.Client, lock *LockData)
 
 	switch result {
 	case int64(-1):
-		lock.Error = errs.ErrLockReleaseUnlocked // Lock doesn't exist
+		lock.Error = ErrLockReleaseUnlocked // Lock doesn't exist
 	case int64(0):
-		lock.Error = errs.ErrLockReleaseForbidden // Lock exists but is owned by someone else
+		lock.Error = ErrLockReleaseForbidden // Lock exists but is owned by someone else
 	case int64(1):
 		lock.Released = true
 	default:

@@ -7,8 +7,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-
-	"github.com/adityakw90/go-cache/internal/errs"
 )
 
 // AcquireMultipleLock attempts to acquire multiple locks atomically.
@@ -94,7 +92,7 @@ func AcquireMultipleLock(
 					acquiredLocks = append(acquiredLocks, locks[i])
 				} else {
 					// If lock wasn't acquired, mark it as failed
-					locks[i].Error = errs.ErrLockAcquireFailed
+					locks[i].Error = ErrLockAcquireFailed
 				}
 			}
 		}
@@ -114,7 +112,7 @@ func AcquireMultipleLock(
 		// If not waiting, exit immediately after the first attempt
 		if !wait {
 			ReleaseMultipleLock(ctx, redisClient, acquiredLocks)
-			return nil, errs.ErrLockAcquireFailed
+			return nil, ErrLockAcquireFailed
 		}
 
 		// If we're out of time, release acquired locks and return
@@ -177,9 +175,9 @@ func ReleaseMultipleLock(ctx context.Context, redisClient *redis.Client, locks [
 		// Process the result from the Lua script
 		switch result {
 		case int64(-1):
-			lock.Error = errs.ErrLockReleaseUnlocked
+			lock.Error = ErrLockReleaseUnlocked
 		case int64(0):
-			lock.Error = errs.ErrLockReleaseForbidden
+			lock.Error = ErrLockReleaseForbidden
 		case int64(1):
 			lock.Released = true
 		default:

@@ -9,8 +9,6 @@ import (
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/adityakw90/go-cache/internal/errs"
 )
 
 func TestLock_AcquireLock(t *testing.T) {
@@ -58,7 +56,7 @@ func TestLock_AcquireLock(t *testing.T) {
 			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
 				assert.False(t, lock.Acquired)
 				assert.Error(t, lock.Error)
-				assert.Equal(t, errs.ErrLockAcquireFailed, lock.Error)
+				assert.Equal(t, ErrLockAcquireFailed, lock.Error)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -231,7 +229,7 @@ func TestLock_ReleaseLock(t *testing.T) {
 			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
 				assert.False(t, lock.Released)
 				assert.Error(t, lock.Error)
-				assert.Equal(t, errs.ErrLockReleaseForbidden, lock.Error)
+				assert.Equal(t, ErrLockReleaseForbidden, lock.Error)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -253,7 +251,7 @@ func TestLock_ReleaseLock(t *testing.T) {
 			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
 				assert.False(t, lock.Released)
 				assert.Error(t, lock.Error)
-				assert.Equal(t, errs.ErrLockReleaseUnlocked, lock.Error)
+				assert.Equal(t, ErrLockReleaseUnlocked, lock.Error)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},

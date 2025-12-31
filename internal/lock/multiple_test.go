@@ -9,8 +9,6 @@ import (
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/adityakw90/go-cache/internal/errs"
 )
 
 func TestLock_AcquireMultipleLock(t *testing.T) {
@@ -65,7 +63,7 @@ func TestLock_AcquireMultipleLock(t *testing.T) {
 			ctx: context.Background(),
 			validate: func(t *testing.T, locks []*LockData, err error, mock redismock.ClientMock) {
 				assert.Error(t, err)
-				assert.Equal(t, errs.ErrLockAcquireFailed, err)
+				assert.Equal(t, ErrLockAcquireFailed, err)
 				assert.Nil(t, locks)
 				// Note: ReleaseMultipleLock expectations may not match exactly due to token generation
 				// The important part is that AcquireMultipleLock failed correctly
@@ -194,7 +192,7 @@ func TestLock_AcquireMultipleLock_AllAlreadyAcquired(t *testing.T) {
 
 	locks2, err2 := AcquireMultipleLock(ctx, client, keys, timeout, interval, wait, waitTimeout)
 	assert.Error(t, err2)
-	assert.Equal(t, errs.ErrLockAcquireFailed, err2)
+	assert.Equal(t, ErrLockAcquireFailed, err2)
 	assert.Nil(t, locks2)
 }
 
@@ -298,7 +296,7 @@ func TestLock_ReleaseMultipleLock(t *testing.T) {
 					// If successful, verify error handling worked correctly
 					assert.True(t, locks[0].Released)
 					assert.False(t, locks[1].Released)
-					assert.Equal(t, errs.ErrLockReleaseForbidden, locks[1].Error)
+					assert.Equal(t, ErrLockReleaseForbidden, locks[1].Error)
 					assert.True(t, locks[2].Released)
 				}
 			},
