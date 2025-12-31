@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/hash"
+	"github.com/adityakw90/go-cache/internal/lock"
 	"github.com/adityakw90/go-cache/internal/serialize"
 )
 
@@ -164,4 +166,38 @@ func (c *Cache) serialize(value interface{}) ([]byte, error) {
 // deserialize converts []byte to a value using Gob decoding.
 func (c *Cache) deserialize(data []byte, result interface{}) error {
 	return serialize.Deserialize(data, result)
+}
+
+// acquireLock attempts to acquire a distributed lock.
+func (c *Cache) acquireLock(
+	ctx context.Context,
+	key string,
+	timeout time.Duration,
+	interval time.Duration,
+	wait bool,
+	waitTimeout time.Duration,
+) *lock.LockData {
+	return lock.AcquireLock(ctx, c.redisClient, key, timeout, interval, wait, waitTimeout)
+}
+
+// releaseLock releases a distributed lock.
+func (c *Cache) releaseLock(ctx context.Context, lockData *lock.LockData) {
+	lock.ReleaseLock(ctx, c.redisClient, lockData)
+}
+
+// acquireMultipleLock attempts to acquire multiple locks atomically.
+func (c *Cache) acquireMultipleLock(
+	ctx context.Context,
+	keys []string,
+	timeout time.Duration,
+	interval time.Duration,
+	wait bool,
+	waitTimeout time.Duration,
+) ([]*lock.LockData, error) {
+	return lock.AcquireMultipleLock(ctx, c.redisClient, keys, timeout, interval, wait, waitTimeout)
+}
+
+// releaseMultipleLock releases multiple locks.
+func (c *Cache) releaseMultipleLock(ctx context.Context, locks []*lock.LockData) error {
+	return lock.ReleaseMultipleLock(ctx, c.redisClient, locks)
 }

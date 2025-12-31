@@ -1,3 +1,8 @@
+//go:build integration
+// +build integration
+
+// Integration tests for lock functionality.
+// These tests require a running Redis instance.
 package cache
 
 import (
@@ -9,6 +14,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/adityakw90/go-cache/internal/lock"
+	testutil "github.com/adityakw90/go-cache/test/util"
 )
 
 func TestCache_acquireLock(t *testing.T) {
@@ -20,7 +28,7 @@ func TestCache_acquireLock(t *testing.T) {
 		wait        bool
 		timeout     time.Duration
 		prepareFunc func(t *testing.T, cache *Cache, ctx context.Context, key string) func() // cleanup function
-		checkFunc   func(t *testing.T, lock *LockData, key string)
+		checkFunc   func(t *testing.T, lock *lock.LockData, key string)
 	}{
 		{
 			name:     "acquire lock successfully",
@@ -33,7 +41,7 @@ func TestCache_acquireLock(t *testing.T) {
 				// No preparation needed
 				return func() {}
 			},
-			checkFunc: func(t *testing.T, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, lock *lock.LockData, key string) {
 				assert.True(t, lock.Acquired)
 				assert.NotEmpty(t, lock.Token)
 				assert.Equal(t, key, lock.Key)
@@ -56,7 +64,7 @@ func TestCache_acquireLock(t *testing.T) {
 					cache.releaseLock(ctx, lock1)
 				}
 			},
-			checkFunc: func(t *testing.T, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, lock *lock.LockData, key string) {
 				assert.False(t, lock.Acquired)
 				assert.Error(t, lock.Error)
 				assert.Equal(t, ErrLockAcquireFailed, lock.Error)
@@ -81,7 +89,7 @@ func TestCache_acquireLock(t *testing.T) {
 				// Return no-op cleanup (lock1 will be released by goroutine)
 				return func() {}
 			},
-			checkFunc: func(t *testing.T, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, lock *lock.LockData, key string) {
 				assert.True(t, lock.Acquired)
 				assert.NoError(t, lock.Error)
 			},
@@ -102,7 +110,7 @@ func TestCache_acquireLock(t *testing.T) {
 					cache.releaseLock(ctx, lock1)
 				}
 			},
-			checkFunc: func(t *testing.T, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, lock *lock.LockData, key string) {
 				assert.False(t, lock.Acquired)
 				assert.Error(t, lock.Error)
 				assert.Contains(t, lock.Error.Error(), "timeout")
@@ -112,18 +120,18 @@ func TestCache_acquireLock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			redisClient := createTestRedisClient(t)
-			cache, err := NewCache(redisClient)
+			redisClient := testutil.CreateTestRedisClient(t)
+			cacheInstance, err := NewCache(redisClient)
 			require.NoError(t, err)
 
 			ctx := context.Background()
 
 			// Prepare test state
-			cleanup := tt.prepareFunc(t, cache, ctx, tt.key)
+			cleanup := tt.prepareFunc(t, cacheInstance, ctx, tt.key)
 			defer cleanup()
 
 			// Acquire lock
-			lock := cache.acquireLock(ctx, tt.key, tt.duration, tt.interval, tt.wait, tt.timeout)
+			lock := cacheInstance.acquireLock(ctx, tt.key, tt.duration, tt.interval, tt.wait, tt.timeout)
 
 			// Check results
 			if tt.checkFunc != nil {
@@ -132,7 +140,7 @@ func TestCache_acquireLock(t *testing.T) {
 
 			// Clean up acquired lock if successful
 			if lock.Acquired {
-				cache.releaseLock(ctx, lock)
+				cacheInstance.releaseLock(ctx, lock)
 				assert.True(t, lock.Released)
 			}
 		})
@@ -143,20 +151,20 @@ func TestCache_releaseLock(t *testing.T) {
 	tests := []struct {
 		name        string
 		key         string
-		prepareFunc func(t *testing.T, cache *Cache, ctx context.Context, key string) (*LockData, func()) // returns lock to release and cleanup function
-		checkFunc   func(t *testing.T, cache *Cache, ctx context.Context, lock *LockData, key string)
+		prepareFunc func(t *testing.T, cache *Cache, ctx context.Context, key string) (*lock.LockData, func()) // returns lock to release and cleanup function
+		checkFunc   func(t *testing.T, cache *Cache, ctx context.Context, lock *lock.LockData, key string)
 	}{
 		{
 			name: "release lock successfully",
 			key:  "test:lock:5",
-			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context, key string) (*LockData, func()) {
+			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context, key string) (*lock.LockData, func()) {
 				// Acquire lock
 				lock := cache.acquireLock(ctx, key, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 				require.True(t, lock.Acquired)
 				// Return lock to release and no-op cleanup
 				return lock, func() {}
 			},
-			checkFunc: func(t *testing.T, cache *Cache, ctx context.Context, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, cache *Cache, ctx context.Context, lock *lock.LockData, key string) {
 				// Release lock
 				cache.releaseLock(ctx, lock)
 				assert.True(t, lock.Released)
@@ -171,12 +179,12 @@ func TestCache_releaseLock(t *testing.T) {
 		{
 			name: "release lock with wrong token",
 			key:  "test:lock:6",
-			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context, key string) (*LockData, func()) {
+			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context, key string) (*lock.LockData, func()) {
 				// Acquire lock
 				lock1 := cache.acquireLock(ctx, key, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 				require.True(t, lock1.Acquired)
 				// Create lock with wrong token
-				lock2 := &LockData{
+				lock2 := &lock.LockData{
 					Key:   key,
 					Token: "wrong-token",
 				}
@@ -185,7 +193,7 @@ func TestCache_releaseLock(t *testing.T) {
 					cache.releaseLock(ctx, lock1)
 				}
 			},
-			checkFunc: func(t *testing.T, cache *Cache, ctx context.Context, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, cache *Cache, ctx context.Context, lock *lock.LockData, key string) {
 				// Try to release with wrong token
 				cache.releaseLock(ctx, lock)
 				assert.False(t, lock.Released)
@@ -196,16 +204,16 @@ func TestCache_releaseLock(t *testing.T) {
 		{
 			name: "release non-existent lock",
 			key:  "test:lock:7",
-			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context, key string) (*LockData, func()) {
+			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context, key string) (*lock.LockData, func()) {
 				// Create lock that doesn't exist
-				lock := &LockData{
+				lock := &lock.LockData{
 					Key:   key,
 					Token: "some-token",
 				}
 				// Return lock to release and no-op cleanup
 				return lock, func() {}
 			},
-			checkFunc: func(t *testing.T, cache *Cache, ctx context.Context, lock *LockData, key string) {
+			checkFunc: func(t *testing.T, cache *Cache, ctx context.Context, lock *lock.LockData, key string) {
 				// Try to release non-existent lock
 				cache.releaseLock(ctx, lock)
 				assert.False(t, lock.Released)
@@ -217,19 +225,19 @@ func TestCache_releaseLock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			redisClient := createTestRedisClient(t)
-			cache, err := NewCache(redisClient)
+			redisClient := testutil.CreateTestRedisClient(t)
+			cacheInstance, err := NewCache(redisClient)
 			require.NoError(t, err)
 
 			ctx := context.Background()
 
 			// Prepare lock to release
-			lock, cleanup := tt.prepareFunc(t, cache, ctx, tt.key)
+			lock, cleanup := tt.prepareFunc(t, cacheInstance, ctx, tt.key)
 			defer cleanup()
 
 			// Check results
 			if tt.checkFunc != nil {
-				tt.checkFunc(t, cache, ctx, lock, tt.key)
+				tt.checkFunc(t, cacheInstance, ctx, lock, tt.key)
 			}
 		})
 	}
@@ -240,7 +248,7 @@ func TestCache_acquireMultipleLock(t *testing.T) {
 		name        string
 		keys        []string
 		prepareFunc func(t *testing.T, cache *Cache, ctx context.Context) func() // cleanup function
-		checkFunc   func(t *testing.T, locks []*LockData, err error)
+		checkFunc   func(t *testing.T, locks []*lock.LockData, err error)
 	}{
 		{
 			name: "acquire multiple locks successfully",
@@ -249,7 +257,7 @@ func TestCache_acquireMultipleLock(t *testing.T) {
 				// No preparation needed
 				return func() {}
 			},
-			checkFunc: func(t *testing.T, locks []*LockData, err error) {
+			checkFunc: func(t *testing.T, locks []*lock.LockData, err error) {
 				require.NoError(t, err)
 				require.NotNil(t, locks)
 				require.Equal(t, 3, len(locks))
@@ -273,7 +281,7 @@ func TestCache_acquireMultipleLock(t *testing.T) {
 					cache.releaseLock(ctx, lock1)
 				}
 			},
-			checkFunc: func(t *testing.T, locks []*LockData, err error) {
+			checkFunc: func(t *testing.T, locks []*lock.LockData, err error) {
 				assert.Error(t, err)
 				assert.Equal(t, ErrLockAcquireFailed, err)
 			},
@@ -282,18 +290,18 @@ func TestCache_acquireMultipleLock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			redisClient := createTestRedisClient(t)
-			cache, err := NewCache(redisClient)
+			redisClient := testutil.CreateTestRedisClient(t)
+			cacheInstance, err := NewCache(redisClient)
 			require.NoError(t, err)
 
 			ctx := context.Background()
 
 			// Prepare test state
-			cleanup := tt.prepareFunc(t, cache, ctx)
+			cleanup := tt.prepareFunc(t, cacheInstance, ctx)
 			defer cleanup()
 
 			// Acquire multiple locks
-			locks, err := cache.acquireMultipleLock(ctx, tt.keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
+			locks, err := cacheInstance.acquireMultipleLock(ctx, tt.keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 
 			// Check results
 			if tt.checkFunc != nil {
@@ -302,7 +310,7 @@ func TestCache_acquireMultipleLock(t *testing.T) {
 
 			// Clean up acquired locks if successful
 			if err == nil && locks != nil {
-				err = cache.releaseMultipleLock(ctx, locks)
+				err = cacheInstance.releaseMultipleLock(ctx, locks)
 				assert.NoError(t, err)
 				for _, lock := range locks {
 					assert.True(t, lock.Released)
@@ -315,19 +323,19 @@ func TestCache_acquireMultipleLock(t *testing.T) {
 func TestCache_releaseMultipleLock(t *testing.T) {
 	tests := []struct {
 		name        string
-		prepareFunc func(t *testing.T, cache *Cache, ctx context.Context) []*LockData
-		checkFunc   func(t *testing.T, locks []*LockData, err error)
+		prepareFunc func(t *testing.T, cache *Cache, ctx context.Context) []*lock.LockData
+		checkFunc   func(t *testing.T, locks []*lock.LockData, err error)
 	}{
 		{
 			name: "release multiple locks successfully",
-			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context) []*LockData {
+			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context) []*lock.LockData {
 				keys := []string{"test:lock:13", "test:lock:14"}
 				// Acquire multiple locks
 				locks, err := cache.acquireMultipleLock(ctx, keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 				require.NoError(t, err)
 				return locks
 			},
-			checkFunc: func(t *testing.T, locks []*LockData, err error) {
+			checkFunc: func(t *testing.T, locks []*lock.LockData, err error) {
 				assert.NoError(t, err)
 				// Verify all locks are released
 				for _, lock := range locks {
@@ -338,11 +346,11 @@ func TestCache_releaseMultipleLock(t *testing.T) {
 		},
 		{
 			name: "release empty locks",
-			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context) []*LockData {
+			prepareFunc: func(t *testing.T, cache *Cache, ctx context.Context) []*lock.LockData {
 				// Return empty slice
-				return []*LockData{}
+				return []*lock.LockData{}
 			},
-			checkFunc: func(t *testing.T, locks []*LockData, err error) {
+			checkFunc: func(t *testing.T, locks []*lock.LockData, err error) {
 				// Should not error with empty locks
 				assert.NoError(t, err)
 			},
@@ -351,17 +359,17 @@ func TestCache_releaseMultipleLock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			redisClient := createTestRedisClient(t)
-			cache, err := NewCache(redisClient)
+			redisClient := testutil.CreateTestRedisClient(t)
+			cacheInstance, err := NewCache(redisClient)
 			require.NoError(t, err)
 
 			ctx := context.Background()
 
 			// Prepare locks
-			locks := tt.prepareFunc(t, cache, ctx)
+			locks := tt.prepareFunc(t, cacheInstance, ctx)
 
 			// Release all locks
-			err = cache.releaseMultipleLock(ctx, locks)
+			err = cacheInstance.releaseMultipleLock(ctx, locks)
 
 			// Check results
 			if tt.checkFunc != nil {
@@ -374,19 +382,19 @@ func TestCache_releaseMultipleLock(t *testing.T) {
 func TestLockData_Fields(t *testing.T) {
 	tests := []struct {
 		name      string
-		lock      *LockData
-		checkFunc func(t *testing.T, lock *LockData)
+		lock      *lock.LockData
+		checkFunc func(t *testing.T, lock *lock.LockData)
 	}{
 		{
 			name: "lock data fields",
-			lock: &LockData{
+			lock: &lock.LockData{
 				Key:      "test:key",
 				Token:    "test-token",
 				Acquired: true,
 				Released: false,
 				Error:    nil,
 			},
-			checkFunc: func(t *testing.T, lock *LockData) {
+			checkFunc: func(t *testing.T, lock *lock.LockData) {
 				assert.Equal(t, "test:key", lock.Key)
 				assert.Equal(t, "test-token", lock.Token)
 				assert.True(t, lock.Acquired)
@@ -408,8 +416,8 @@ func TestLockData_Fields(t *testing.T) {
 // Integration Tests
 
 func TestCache_ConcurrentLockAcquisition(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -425,14 +433,14 @@ func TestCache_ConcurrentLockAcquisition(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			lock := cache.acquireLock(ctx, key, time.Minute, 50*time.Millisecond, false, 2*time.Second)
+			lock := cacheInstance.acquireLock(ctx, key, time.Minute, 50*time.Millisecond, false, 2*time.Second)
 			if lock.Acquired {
 				mu.Lock()
 				acquiredCount++
 				mu.Unlock()
 				// Hold the lock for a short time
 				time.Sleep(100 * time.Millisecond)
-				cache.releaseLock(ctx, lock)
+				cacheInstance.releaseLock(ctx, lock)
 			}
 		}(i)
 	}
@@ -444,14 +452,14 @@ func TestCache_ConcurrentLockAcquisition(t *testing.T) {
 }
 
 func TestCache_ConcurrentLockAcquisitionWithWait(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
 	key := "test:lock:concurrent:wait:1"
 	numGoroutines := 5
-	acquiredLocks := make([]*LockData, 0, numGoroutines)
+	acquiredLocks := make([]*lock.LockData, 0, numGoroutines)
 	var mu sync.Mutex
 
 	var wg sync.WaitGroup
@@ -461,14 +469,14 @@ func TestCache_ConcurrentLockAcquisitionWithWait(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			lock := cache.acquireLock(ctx, key, 500*time.Millisecond, 50*time.Millisecond, true, 5*time.Second)
+			lock := cacheInstance.acquireLock(ctx, key, 500*time.Millisecond, 50*time.Millisecond, true, 5*time.Second)
 			if lock.Acquired {
 				mu.Lock()
 				acquiredLocks = append(acquiredLocks, lock)
 				mu.Unlock()
 				// Hold the lock for a short time
 				time.Sleep(200 * time.Millisecond)
-				cache.releaseLock(ctx, lock)
+				cacheInstance.releaseLock(ctx, lock)
 			}
 		}(i)
 	}
@@ -484,32 +492,32 @@ func TestCache_ConcurrentLockAcquisitionWithWait(t *testing.T) {
 }
 
 func TestCache_LockExpiration(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
 	key := "test:lock:expiration:1"
 
 	// Acquire lock with short expiration
-	lock1 := cache.acquireLock(ctx, key, 500*time.Millisecond, 100*time.Millisecond, false, 5*time.Second)
+	lock1 := cacheInstance.acquireLock(ctx, key, 500*time.Millisecond, 100*time.Millisecond, false, 5*time.Second)
 	require.True(t, lock1.Acquired)
 
 	// Wait for lock to expire
 	time.Sleep(600 * time.Millisecond)
 
 	// Should be able to acquire the lock again after expiration
-	lock2 := cache.acquireLock(ctx, key, time.Minute, 100*time.Millisecond, false, 5*time.Second)
+	lock2 := cacheInstance.acquireLock(ctx, key, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 	assert.True(t, lock2.Acquired)
 	assert.NotEqual(t, lock1.Token, lock2.Token)
 
 	// Clean up
-	cache.releaseLock(ctx, lock2)
+	cacheInstance.releaseLock(ctx, lock2)
 }
 
 func TestCache_ConcurrentMultipleKeys(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -530,13 +538,13 @@ func TestCache_ConcurrentMultipleKeys(t *testing.T) {
 			wg.Add(1)
 			go func(k string) {
 				defer wg.Done()
-				lock := cache.acquireLock(ctx, k, time.Minute, 50*time.Millisecond, false, 2*time.Second)
+				lock := cacheInstance.acquireLock(ctx, k, time.Minute, 50*time.Millisecond, false, 2*time.Second)
 				if lock.Acquired {
 					mu.Lock()
 					acquiredCounts[k]++
 					mu.Unlock()
 					time.Sleep(50 * time.Millisecond)
-					cache.releaseLock(ctx, lock)
+					cacheInstance.releaseLock(ctx, lock)
 				}
 			}(key)
 		}
@@ -555,8 +563,8 @@ func TestCache_StressTestMultipleLocks(t *testing.T) {
 		t.Skip("skipping stress test in short mode")
 	}
 
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -567,7 +575,7 @@ func TestCache_StressTestMultipleLocks(t *testing.T) {
 	}
 
 	// Acquire all locks
-	locks, err := cache.acquireMultipleLock(ctx, keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
+	locks, err := cacheInstance.acquireMultipleLock(ctx, keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 	require.NoError(t, err)
 	require.Equal(t, numLocks, len(locks))
 
@@ -577,7 +585,7 @@ func TestCache_StressTestMultipleLocks(t *testing.T) {
 	}
 
 	// Release all locks
-	err = cache.releaseMultipleLock(ctx, locks)
+	err = cacheInstance.releaseMultipleLock(ctx, locks)
 	assert.NoError(t, err)
 
 	// Verify all are released
@@ -587,8 +595,8 @@ func TestCache_StressTestMultipleLocks(t *testing.T) {
 }
 
 func TestCache_SequentialLockAcquisition(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -597,18 +605,18 @@ func TestCache_SequentialLockAcquisition(t *testing.T) {
 
 	// Sequentially acquire and release the lock multiple times
 	for i := 0; i < numIterations; i++ {
-		lock := cache.acquireLock(ctx, key, time.Minute, 100*time.Millisecond, false, 5*time.Second)
+		lock := cacheInstance.acquireLock(ctx, key, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 		assert.True(t, lock.Acquired, "iteration %d should acquire lock", i)
 		assert.NotEmpty(t, lock.Token, "iteration %d should have token", i)
 
-		cache.releaseLock(ctx, lock)
+		cacheInstance.releaseLock(ctx, lock)
 		assert.True(t, lock.Released, "iteration %d should release lock", i)
 	}
 }
 
 func TestCache_ConcurrentMultipleLockAcquisition(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -624,14 +632,14 @@ func TestCache_ConcurrentMultipleLockAcquisition(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			locks, err := cache.acquireMultipleLock(ctx, keys, time.Minute, 50*time.Millisecond, true, 5*time.Second)
+			locks, err := cacheInstance.acquireMultipleLock(ctx, keys, time.Minute, 50*time.Millisecond, true, 5*time.Second)
 			if err == nil && len(locks) == len(keys) {
 				mu.Lock()
 				successCount++
 				mu.Unlock()
 				// Hold locks for a short time
 				time.Sleep(100 * time.Millisecond)
-				cache.releaseMultipleLock(ctx, locks)
+				cacheInstance.releaseMultipleLock(ctx, locks)
 			}
 		}(i)
 	}
@@ -643,8 +651,8 @@ func TestCache_ConcurrentMultipleLockAcquisition(t *testing.T) {
 }
 
 func TestCache_LockContentionWithWait(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -660,14 +668,14 @@ func TestCache_LockContentionWithWait(t *testing.T) {
 	for i := 0; i < numContenders; i++ {
 		go func(id int) {
 			defer wg.Done()
-			lock := cache.acquireLock(ctx, key, 300*time.Millisecond, 30*time.Millisecond, true, 10*time.Second)
+			lock := cacheInstance.acquireLock(ctx, key, 300*time.Millisecond, 30*time.Millisecond, true, 10*time.Second)
 			if lock.Acquired {
 				mu.Lock()
 				acquiredOrder = append(acquiredOrder, id)
 				mu.Unlock()
 				// Hold lock briefly
 				time.Sleep(100 * time.Millisecond)
-				cache.releaseLock(ctx, lock)
+				cacheInstance.releaseLock(ctx, lock)
 			}
 		}(i)
 	}
@@ -679,20 +687,20 @@ func TestCache_LockContentionWithWait(t *testing.T) {
 }
 
 func TestCache_MixedSingleAndMultipleLocks(t *testing.T) {
-	redisClient := createTestRedisClient(t)
-	cache, err := NewCache(redisClient)
+	redisClient := testutil.CreateTestRedisClient(t)
+	cacheInstance, err := NewCache(redisClient)
 	require.NoError(t, err)
 
 	ctx := context.Background()
 
 	// Acquire a single lock
 	key1 := "test:lock:mixed:1"
-	lock1 := cache.acquireLock(ctx, key1, time.Minute, 100*time.Millisecond, false, 5*time.Second)
+	lock1 := cacheInstance.acquireLock(ctx, key1, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 	require.True(t, lock1.Acquired)
 
 	// Acquire multiple locks (different keys)
 	keys := []string{"test:lock:mixed:2", "test:lock:mixed:3"}
-	locks, err := cache.acquireMultipleLock(ctx, keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
+	locks, err := cacheInstance.acquireMultipleLock(ctx, keys, time.Minute, 100*time.Millisecond, false, 5*time.Second)
 	require.NoError(t, err)
 	require.Equal(t, len(keys), len(locks))
 
@@ -703,8 +711,8 @@ func TestCache_MixedSingleAndMultipleLocks(t *testing.T) {
 	}
 
 	// Release all locks
-	cache.releaseLock(ctx, lock1)
-	err = cache.releaseMultipleLock(ctx, locks)
+	cacheInstance.releaseLock(ctx, lock1)
+	err = cacheInstance.releaseMultipleLock(ctx, locks)
 	assert.NoError(t, err)
 
 	// Verify all are released
