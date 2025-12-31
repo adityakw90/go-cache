@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCustomKeyFunction_Call(t *testing.T) {
+func TestKey_CustomKeyFunction_Call(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func() (CustomKeyFunction, error)
@@ -198,7 +198,7 @@ func TestCustomKeyFunction_Call(t *testing.T) {
 	}
 }
 
-func TestCustomKeyFunction_Call_EdgeCases(t *testing.T) {
+func TestKey_CustomKeyFunction_Call_EdgeCases(t *testing.T) {
 	tests := []struct {
 		name       string
 		setupFunc  func() (CustomKeyFunction, error)
@@ -274,7 +274,7 @@ func TestCustomKeyFunction_Call_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestNewCustomKeyFunction_Validation(t *testing.T) {
+func TestKey_NewCustomKeyFunction_Validation(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupFunc   func() (CustomKeyFunction, error)
@@ -354,7 +354,7 @@ func TestNewCustomKeyFunction_Validation(t *testing.T) {
 	}
 }
 
-func TestCustomKeyFunction_Name(t *testing.T) {
+func TestKey_CustomKeyFunction_Name(t *testing.T) {
 	tests := []struct {
 		name         string
 		functionName string

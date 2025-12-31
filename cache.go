@@ -88,7 +88,7 @@ func NewCache(redisClient *redis.Client, opts ...Option) (*Cache, error) {
 		lockInterval:        options.lockInterval,
 		expireDefault:       options.expireDefault,
 		keyUsage:            make(map[string][]string),
-		customKeys:          make(map[string]map[string]CustomKeyFunction),
+		customKeys:          make(map[string]map[string]key.CustomKeyFunction),
 	}
 
 	return c, nil
