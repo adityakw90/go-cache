@@ -9,6 +9,7 @@ import (
 
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/hash"
+	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/lock"
 	"github.com/adityakw90/go-cache/internal/serialize"
 )
@@ -28,9 +29,9 @@ type Cache struct {
 	lockDuration        time.Duration
 	lockInterval        time.Duration
 	expireDefault       time.Duration
-	keyUsage            map[string][]string                      // To track cache key usage
-	customKeys          map[string]map[string]*CustomKeyFunction // To track custom key functions
-	keyMutex            sync.Mutex                               // Mutex to handle concurrent map access
+	keyUsage            map[string][]string                         // To track cache key usage
+	customKeys          map[string]map[string]key.CustomKeyFunction // To track custom key functions
+	keyMutex            sync.Mutex                                  // Mutex to handle concurrent map access
 }
 
 // NewCache creates a new cache instance with functional options.
@@ -87,7 +88,7 @@ func NewCache(redisClient *redis.Client, opts ...Option) (*Cache, error) {
 		lockInterval:        options.lockInterval,
 		expireDefault:       options.expireDefault,
 		keyUsage:            make(map[string][]string),
-		customKeys:          make(map[string]map[string]*CustomKeyFunction),
+		customKeys:          make(map[string]map[string]CustomKeyFunction),
 	}
 
 	return c, nil
@@ -123,7 +124,7 @@ func (c *Cache) registerCacheKey(keyName string, prefix string) {
 }
 
 // registerCustomKey registers a custom key function.
-func (c *Cache) registerCustomKey(keyName string, customKeyFunc *CustomKeyFunction) {
+func (c *Cache) registerCustomKey(keyName string, customKeyFunc key.CustomKeyFunction) {
 	if customKeyFunc == nil {
 		return
 	}
@@ -132,10 +133,10 @@ func (c *Cache) registerCustomKey(keyName string, customKeyFunc *CustomKeyFuncti
 	defer c.keyMutex.Unlock()
 
 	if _, exists := c.customKeys[keyName]; !exists {
-		c.customKeys[keyName] = make(map[string]*CustomKeyFunction)
+		c.customKeys[keyName] = make(map[string]key.CustomKeyFunction)
 	}
 
-	c.customKeys[keyName][customKeyFunc.Name] = customKeyFunc
+	c.customKeys[keyName][customKeyFunc.Name()] = customKeyFunc
 }
 
 // getCacheKeyUsage returns the list of key names for a given prefix.

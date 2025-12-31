@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -53,7 +54,7 @@ func (c *Cache) Cached(
 	prefix string,
 ) func(
 	fn func(ctx context.Context, args ...interface{}) (interface{}, error),
-	customKeyFunc *CustomKeyFunction,
+	customKeyFunc key.CustomKeyFunction,
 ) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 	// Set default prefix if not provided
 	if prefix == "" {
@@ -65,7 +66,7 @@ func (c *Cache) Cached(
 
 	return func(
 		fn func(ctx context.Context, args ...interface{}) (interface{}, error),
-		customKeyFunc *CustomKeyFunction,
+		customKeyFunc key.CustomKeyFunction,
 	) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 		if customKeyFunc != nil {
 			// Register custom key function
@@ -235,8 +236,8 @@ func (c *Cache) Cached(
 					}
 
 					loggerBg.Debug("cache updated", map[string]interface{}{
-						"key":      key,
-						"ttl":      ttlValue.String(),
+						"key":         key,
+						"ttl":         ttlValue.String(),
 						"result_type": fmt.Sprintf("%T", resultType),
 					})
 				}()
@@ -271,4 +272,3 @@ func (c *Cache) Cached(
 		}
 	}
 }
-

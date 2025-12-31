@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adityakw90/go-cache/internal/errs"
+	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -213,20 +214,20 @@ func TestCache_registerCustomKey(t *testing.T) {
 	tests := []struct {
 		name      string
 		funcName  string
-		customKey *CustomKeyFunction
-		checkFunc func(t *testing.T, exists bool, customKeys map[string]*CustomKeyFunction)
+		customKey map[string]interface{}
+		checkFunc func(t *testing.T, exists bool, customKeys map[string]key.CustomKeyFunction)
 	}{
 		{
 			name:     "register valid custom key",
 			funcName: "getUser",
-			customKey: &CustomKeyFunction{
-				Name: "getUser",
-				Callable: func(args ...interface{}) string {
+			customKey: map[string]interface{}{
+				"name": "getUser",
+				"callable": func(args ...interface{}) string {
 					return "user:" + args[0].(string)
 				},
-				Params: []string{"uid"},
+				"params": []string{"uid"},
 			},
-			checkFunc: func(t *testing.T, exists bool, customKeys map[string]*CustomKeyFunction) {
+			checkFunc: func(t *testing.T, exists bool, customKeys map[string]key.CustomKeyFunction) {
 				assert.True(t, exists)
 				assert.NotNil(t, customKeys["getUser"])
 			},
@@ -235,7 +236,7 @@ func TestCache_registerCustomKey(t *testing.T) {
 			name:      "register nil custom key",
 			funcName:  "getUser2",
 			customKey: nil,
-			checkFunc: func(t *testing.T, exists bool, customKeys map[string]*CustomKeyFunction) {
+			checkFunc: func(t *testing.T, exists bool, customKeys map[string]key.CustomKeyFunction) {
 				assert.False(t, exists)
 			},
 		},
@@ -246,7 +247,17 @@ func TestCache_registerCustomKey(t *testing.T) {
 			cache, err := NewCache(redisClient)
 			require.NoError(t, err)
 
-			cache.registerCustomKey(tt.funcName, tt.customKey)
+			var customKey key.CustomKeyFunction
+			if tt.customKey != nil {
+				var err error
+				customKey, err = key.NewCustomKeyFunction(
+					tt.funcName,
+					tt.customKey["callable"].(func(args ...interface{}) string),
+					tt.customKey["params"].([]string),
+				)
+				require.NoError(t, err)
+			}
+			cache.registerCustomKey(tt.funcName, customKey)
 
 			cache.keyMutex.Lock()
 			customKeys, exists := cache.customKeys[tt.funcName]
