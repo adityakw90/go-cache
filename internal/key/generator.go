@@ -1,7 +1,7 @@
 package key
 
 // KeyGenerator generates a simple cache key.
-// Template: {prefix}:{key}
+// Template: {prefix}:{key}.gob
 func KeyGenerator(data map[string]string) (string, error) {
 	prefix, ok := data["prefix"]
 	if !ok {
