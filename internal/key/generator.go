@@ -1,7 +1,5 @@
 package key
 
-import "fmt"
-
 // KeyGenerator generates a simple cache key.
 // Template: {prefix}:{key}
 func KeyGenerator(data map[string]string) (string, error) {
@@ -13,7 +11,7 @@ func KeyGenerator(data map[string]string) (string, error) {
 	if !ok {
 		return "", ErrKeyGeneratorParamsKeyRequired
 	}
-	return prefix + ":" + key, nil
+	return prefix + ":" + key + ".gob", nil
 }
 
 // KeyVersionGenerator generates a versioned cache key.
@@ -35,7 +33,7 @@ func KeyVersionGenerator(data map[string]string) (string, error) {
 	if !ok {
 		return "", ErrKeyGeneratorParamsKeyRequired
 	}
-	return fmt.Sprintf("%s:%s:v%s-%s.gob", prefix, namespace, version, key), nil
+	return prefix + ":" + namespace + ":v" + version + "-" + key + ".gob", nil
 }
 
 // VersionGenerator generates a version key.
@@ -49,7 +47,7 @@ func VersionGenerator(data map[string]string) (string, error) {
 	if !ok {
 		return "", ErrKeyGeneratorParamsNamespaceRequired
 	}
-	return fmt.Sprintf("%s:%s:version", prefix, namespace), nil
+	return prefix + ":" + namespace + ":version", nil
 }
 
 // LockGenerator generates a lock key.
@@ -63,5 +61,5 @@ func LockGenerator(data map[string]string) (string, error) {
 	if !ok {
 		return "", ErrKeyGeneratorParamsNamespaceRequired
 	}
-	return fmt.Sprintf("%s:%s:lock", prefix, namespace), nil
+	return prefix + ":" + namespace + ":lock", nil
 }

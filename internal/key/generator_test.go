@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestKeyGenerator(t *testing.T) {
+func TestKey_KeyGenerator(t *testing.T) {
 	tests := []struct {
 		name        string
 		data        map[string]string
@@ -21,7 +21,7 @@ func TestKeyGenerator(t *testing.T) {
 				"prefix": "cache",
 				"key":    "user:123",
 			},
-			wantResult: "cache:user:123",
+			wantResult: "cache:user:123.gob",
 			wantErr:    false,
 		},
 		{
@@ -30,7 +30,7 @@ func TestKeyGenerator(t *testing.T) {
 				"prefix": "",
 				"key":    "user:123",
 			},
-			wantResult: ":user:123",
+			wantResult: ":user:123.gob",
 			wantErr:    false,
 		},
 		{
@@ -39,7 +39,7 @@ func TestKeyGenerator(t *testing.T) {
 				"prefix": "cache",
 				"key":    "",
 			},
-			wantResult: "cache:",
+			wantResult: "cache:.gob",
 			wantErr:    false,
 		},
 		{
@@ -48,7 +48,7 @@ func TestKeyGenerator(t *testing.T) {
 				"prefix": "",
 				"key":    "",
 			},
-			wantResult: ":",
+			wantResult: ":.gob",
 			wantErr:    false,
 		},
 		{
@@ -90,7 +90,7 @@ func TestKeyGenerator(t *testing.T) {
 				"key":    "user:123",
 				"extra":  "ignored",
 			},
-			wantResult: "cache:user:123",
+			wantResult: "cache:user:123.gob",
 			wantErr:    false,
 		},
 		{
@@ -99,7 +99,7 @@ func TestKeyGenerator(t *testing.T) {
 				"prefix": "cache-v1",
 				"key":    "user:123:data",
 			},
-			wantResult: "cache-v1:user:123:data",
+			wantResult: "cache-v1:user:123:data.gob",
 			wantErr:    false,
 		},
 	}
@@ -122,7 +122,7 @@ func TestKeyGenerator(t *testing.T) {
 	}
 }
 
-func TestKeyVersionGenerator(t *testing.T) {
+func TestKey_KeyVersionGenerator(t *testing.T) {
 	tests := []struct {
 		name        string
 		data        map[string]string
@@ -297,7 +297,7 @@ func TestKeyVersionGenerator(t *testing.T) {
 	}
 }
 
-func TestVersionGenerator(t *testing.T) {
+func TestKey_VersionGenerator(t *testing.T) {
 	tests := []struct {
 		name        string
 		data        map[string]string
@@ -412,7 +412,7 @@ func TestVersionGenerator(t *testing.T) {
 	}
 }
 
-func TestLockGenerator(t *testing.T) {
+func TestKey_LockGenerator(t *testing.T) {
 	tests := []struct {
 		name        string
 		data        map[string]string

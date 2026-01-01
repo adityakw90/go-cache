@@ -441,10 +441,10 @@ func TestDefaultKeyGenerator(t *testing.T) {
 				"key":    "testkey",
 			},
 			wantErr:    false,
-			wantResult: "myapp:testkey",
+			wantResult: "myapp:testkey.gob",
 			checkFunc: func(t *testing.T, result string, err error) {
 				assert.NoError(t, err)
-				assert.Equal(t, "myapp:testkey", result)
+				assert.Equal(t, "myapp:testkey.gob", result)
 			},
 		},
 		{
