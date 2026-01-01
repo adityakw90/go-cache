@@ -1,15 +1,8 @@
 package key
 
 import (
-	"errors"
 	"fmt"
 )
-
-type CustomKeyFunction interface {
-	Name() string
-	Call(params map[string]interface{}) (string, error)
-	Callable(args ...interface{}) string
-}
 
 // CustomKeyFunction defines custom key generation logic.
 type customKeyFunction struct {
@@ -39,25 +32,4 @@ func (ckf *customKeyFunction) Call(params map[string]interface{}) (string, error
 
 func (ckf *customKeyFunction) Callable(args ...interface{}) string {
 	return ckf.callable(args...)
-}
-
-func NewCustomKeyFunction(
-	name string,
-	callable func(args ...interface{}) string,
-	params []string,
-) (CustomKeyFunction, error) {
-	if name == "" {
-		return nil, errors.New("name is required")
-	}
-	if callable == nil {
-		return nil, errors.New("callable is required")
-	}
-	if len(params) == 0 {
-		return nil, errors.New("params is required")
-	}
-	return &customKeyFunction{
-		name:     name,
-		callable: callable,
-		params:   params,
-	}, nil
 }

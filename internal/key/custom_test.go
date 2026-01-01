@@ -8,6 +8,49 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestKey_CustomKeyFunction_Name(t *testing.T) {
+	tests := []struct {
+		name         string
+		functionName string
+		wantName     string
+	}{
+		{
+			name:         "returns correct name",
+			functionName: "getUser",
+			wantName:     "getUser",
+		},
+		{
+			name:         "returns name with special characters",
+			functionName: "getUserById",
+			wantName:     "getUserById",
+		},
+		{
+			name:         "returns name with underscores",
+			functionName: "get_user_by_id",
+			wantName:     "get_user_by_id",
+		},
+		{
+			name:         "returns name with numbers",
+			functionName: "getUser123",
+			wantName:     "getUser123",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ckf, err := NewCustomKeyFunction(
+				tt.functionName,
+				func(args ...interface{}) string {
+					return "test"
+				},
+				[]string{"param"},
+			)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantName, ckf.Name())
+		})
+	}
+}
+
 func TestKey_CustomKeyFunction_Call(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -274,125 +317,106 @@ func TestKey_CustomKeyFunction_Call_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestKey_NewCustomKeyFunction_Validation(t *testing.T) {
+func TestKey_CustomKeyFunction_Callable(t *testing.T) {
 	tests := []struct {
-		name        string
-		setupFunc   func() (CustomKeyFunction, error)
-		wantErr     bool
-		errContains string
+		name       string
+		setupFunc  func() (CustomKeyFunction, error)
+		args       []interface{}
+		wantResult string
 	}{
 		{
-			name: "empty name returns error",
+			name: "single string argument",
 			setupFunc: func() (CustomKeyFunction, error) {
 				return NewCustomKeyFunction(
-					"",
+					"getUser",
 					func(args ...interface{}) string {
-						return "test"
+						return "user:" + args[0].(string)
 					},
-					[]string{"param"},
+					[]string{"uid"},
 				)
 			},
-			wantErr:     true,
-			errContains: "name is required",
+			args:       []interface{}{"123"},
+			wantResult: "user:123",
 		},
 		{
-			name: "nil callable returns error",
+			name: "multiple arguments",
 			setupFunc: func() (CustomKeyFunction, error) {
 				return NewCustomKeyFunction(
-					"test",
-					nil,
-					[]string{"param"},
+					"getUserByType",
+					func(args ...interface{}) string {
+						return "user:" + args[0].(string) + ":" + args[1].(string)
+					},
+					[]string{"uid", "type"},
 				)
 			},
-			wantErr:     true,
-			errContains: "callable is required",
+			args:       []interface{}{"123", "admin"},
+			wantResult: "user:123:admin",
 		},
 		{
-			name: "empty params returns error",
+			name: "mixed type arguments",
 			setupFunc: func() (CustomKeyFunction, error) {
 				return NewCustomKeyFunction(
-					"test",
+					"getUserById",
 					func(args ...interface{}) string {
-						return "test"
+						return fmt.Sprintf("user:%d:%s", args[0].(int), args[1].(string))
 					},
-					[]string{},
+					[]string{"id", "name"},
 				)
 			},
-			wantErr:     true,
-			errContains: "params is required",
+			args:       []interface{}{65, "test"},
+			wantResult: "user:65:test",
 		},
 		{
-			name: "valid parameters succeed",
+			name: "empty string argument",
 			setupFunc: func() (CustomKeyFunction, error) {
 				return NewCustomKeyFunction(
-					"test",
+					"getUser",
 					func(args ...interface{}) string {
-						return "test"
+						return "user:" + args[0].(string)
 					},
-					[]string{"param"},
+					[]string{"uid"},
 				)
 			},
-			wantErr: false,
+			args:       []interface{}{""},
+			wantResult: "user:",
+		},
+		{
+			name: "zero value integer argument",
+			setupFunc: func() (CustomKeyFunction, error) {
+				return NewCustomKeyFunction(
+					"getById",
+					func(args ...interface{}) string {
+						return fmt.Sprintf("id:%d", args[0].(int))
+					},
+					[]string{"id"},
+				)
+			},
+			args:       []interface{}{0},
+			wantResult: "id:0",
+		},
+		{
+			name: "no arguments",
+			setupFunc: func() (CustomKeyFunction, error) {
+				return NewCustomKeyFunction(
+					"getConstant",
+					func(args ...interface{}) string {
+						return "constant"
+					},
+					[]string{"dummy"},
+				)
+			},
+			args:       []interface{}{},
+			wantResult: "constant",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ckf, err := tt.setupFunc()
-
-			if tt.wantErr {
-				require.Error(t, err)
-				if tt.errContains != "" {
-					assert.Contains(t, err.Error(), tt.errContains)
-				}
-				assert.Nil(t, ckf)
-			} else {
-				require.NoError(t, err)
-				assert.NotNil(t, ckf)
-			}
-		})
-	}
-}
-
-func TestKey_CustomKeyFunction_Name(t *testing.T) {
-	tests := []struct {
-		name         string
-		functionName string
-		wantName     string
-	}{
-		{
-			name:         "returns correct name",
-			functionName: "getUser",
-			wantName:     "getUser",
-		},
-		{
-			name:         "returns name with special characters",
-			functionName: "getUserById",
-			wantName:     "getUserById",
-		},
-		{
-			name:         "returns name with underscores",
-			functionName: "get_user_by_id",
-			wantName:     "get_user_by_id",
-		},
-		{
-			name:         "returns name with numbers",
-			functionName: "getUser123",
-			wantName:     "getUser123",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ckf, err := NewCustomKeyFunction(
-				tt.functionName,
-				func(args ...interface{}) string {
-					return "test"
-				},
-				[]string{"param"},
-			)
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantName, ckf.Name())
+
+			result := ckf.Callable(tt.args...)
+			assert.Equal(t, tt.wantResult, result)
 		})
 	}
 }

@@ -1,8 +1,9 @@
 package cache
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/adityakw90/go-cache/internal/key"
 )
 
 // KeyGeneratorFunc generates cache keys from a data map.
@@ -29,6 +30,14 @@ type options struct {
 	lockGenerator       KeyGeneratorFunc
 }
 
+// re export key generator functions
+var (
+	defaultKeyGenerator        = key.KeyGenerator
+	defaultKeyVersionGenerator = key.KeyVersionGenerator
+	defaultVersionGenerator    = key.VersionGenerator
+	defaultLockGenerator       = key.LockGenerator
+)
+
 // defaultOptions returns default cache options.
 func defaultOptions() *options {
 	return &options{
@@ -46,70 +55,6 @@ func defaultOptions() *options {
 		versionGenerator:    defaultVersionGenerator,
 		lockGenerator:       defaultLockGenerator,
 	}
-}
-
-// defaultKeyGenerator generates a simple cache key.
-// Template: {prefix}:{key}
-func defaultKeyGenerator(data map[string]string) (string, error) {
-	prefix, ok := data["prefix"]
-	if !ok {
-		return "", fmt.Errorf("missing 'prefix' in key generator data")
-	}
-	key, ok := data["key"]
-	if !ok {
-		return "", fmt.Errorf("missing 'key' in key generator data")
-	}
-	return prefix + ":" + key, nil
-}
-
-// defaultKeyVersionGenerator generates a versioned cache key.
-// Template: {prefix}:{namespace}:v{version}-{key}.gob
-func defaultKeyVersionGenerator(data map[string]string) (string, error) {
-	prefix, ok := data["prefix"]
-	if !ok {
-		return "", fmt.Errorf("missing 'prefix' in key version generator data")
-	}
-	namespace, ok := data["namespace"]
-	if !ok {
-		return "", fmt.Errorf("missing 'namespace' in key version generator data")
-	}
-	version, ok := data["version"]
-	if !ok {
-		return "", fmt.Errorf("missing 'version' in key version generator data")
-	}
-	key, ok := data["key"]
-	if !ok {
-		return "", fmt.Errorf("missing 'key' in key version generator data")
-	}
-	return fmt.Sprintf("%s:%s:v%s-%s.gob", prefix, namespace, version, key), nil
-}
-
-// defaultVersionGenerator generates a version key.
-// Template: {prefix}:{namespace}:version
-func defaultVersionGenerator(data map[string]string) (string, error) {
-	prefix, ok := data["prefix"]
-	if !ok {
-		return "", fmt.Errorf("missing 'prefix' in version generator data")
-	}
-	namespace, ok := data["namespace"]
-	if !ok {
-		return "", fmt.Errorf("missing 'namespace' in version generator data")
-	}
-	return fmt.Sprintf("%s:%s:version", prefix, namespace), nil
-}
-
-// defaultLockGenerator generates a lock key.
-// Template: {prefix}:{namespace}:lock
-func defaultLockGenerator(data map[string]string) (string, error) {
-	prefix, ok := data["prefix"]
-	if !ok {
-		return "", fmt.Errorf("missing 'prefix' in lock generator data")
-	}
-	namespace, ok := data["namespace"]
-	if !ok {
-		return "", fmt.Errorf("missing 'namespace' in lock generator data")
-	}
-	return fmt.Sprintf("%s:%s:lock", prefix, namespace), nil
 }
 
 // WithKeyPrefix sets the cache key prefix.
