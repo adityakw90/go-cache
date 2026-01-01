@@ -1,4 +1,4 @@
-package cache
+package version
 
 import (
 	"context"
@@ -6,16 +6,50 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redis/v8"
 )
 
-// getCacheVersion retrieves or initializes a cache version.
+// Manager handles version-based cache invalidation.
+type Manager struct {
+	redisClient      *redis.Client
+	tracer           adapter.Tracer
+	logger           adapter.Logger
+	semaphore        adapter.Semaphore
+	versionGenerator key.KeyGeneratorFunc
+	versionExpire    time.Duration
+	keyPrefix        string
+}
+
+// NewManager creates a new version manager.
+func NewManager(
+	redisClient *redis.Client,
+	tracer adapter.Tracer,
+	logger adapter.Logger,
+	semaphore adapter.Semaphore,
+	versionGenerator key.KeyGeneratorFunc,
+	versionExpire time.Duration,
+	keyPrefix string,
+) *Manager {
+	return &Manager{
+		redisClient:      redisClient,
+		tracer:           tracer,
+		logger:           logger,
+		semaphore:        semaphore,
+		versionGenerator: versionGenerator,
+		versionExpire:    versionExpire,
+		keyPrefix:        keyPrefix,
+	}
+}
+
+// GetCacheVersion retrieves or initializes a cache version.
 // If the version doesn't exist, it initializes it to 1.
-func (c *Cache) getCacheVersion(ctx context.Context, namespace string, prefix string) (int, error) {
-	ctx, cacheSpan := c.tracer.StartSpan(ctx, "cache.getCacheVersion")
+func (m *Manager) GetCacheVersion(ctx context.Context, namespace string, prefix string) (int, error) {
+	ctx, cacheSpan := m.tracer.StartSpan(ctx, "cache.getCacheVersion")
 	defer cacheSpan.End()
 
-	logger := c.logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := m.logger.WithSpanContext(cacheSpan.SpanContext())
 
 	data := map[string]string{
 		"prefix":    prefix,
@@ -28,7 +62,7 @@ func (c *Cache) getCacheVersion(ctx context.Context, namespace string, prefix st
 	})
 
 	// Generate version key
-	key, err := c.versionGenerator(data)
+	key, err := m.versionGenerator(data)
 	if err != nil {
 		return 0, fmt.Errorf("failed to generate version key: %w", err)
 	}
@@ -38,7 +72,7 @@ func (c *Cache) getCacheVersion(ctx context.Context, namespace string, prefix st
 	})
 
 	// Try to get existing version
-	version, err := c.redisClient.Get(ctx, key).Result()
+	version, err := m.redisClient.Get(ctx, key).Result()
 	if err == nil {
 		// Version exists, return it as an integer
 		versionInt, err := strconv.Atoi(version)
@@ -55,13 +89,13 @@ func (c *Cache) getCacheVersion(ctx context.Context, namespace string, prefix st
 	}
 
 	// Version doesn't exist, initialize it to 1
-	versionInt, err := c.redisClient.Incr(ctx, key).Result()
+	versionInt, err := m.redisClient.Incr(ctx, key).Result()
 	if err != nil {
 		return 0, fmt.Errorf("failed to initialize version: %w", err)
 	}
 
 	// Asynchronously check TTL
-	c.checkVersionTtlAsync(cacheSpan, key, c.versionExpire)
+	m.CheckVersionTtlAsync(cacheSpan, key, m.versionExpire)
 
 	logger.Debug("version initialized", map[string]interface{}{
 		"version": versionInt,
@@ -70,18 +104,18 @@ func (c *Cache) getCacheVersion(ctx context.Context, namespace string, prefix st
 	return int(versionInt), nil
 }
 
-// incrementCacheVersion increments the version counter in a Redis pipeline.
-func (c *Cache) incrementCacheVersion(
+// IncrementCacheVersion increments the version counter in a Redis pipeline.
+func (m *Manager) IncrementCacheVersion(
 	ctx context.Context,
 	session redis.Pipeliner,
 	prefix string,
 	namespace string,
 	ttl time.Duration,
 ) (int, error) {
-	ctx, cacheSpan := c.tracer.StartSpan(ctx, "cache.incrementCacheVersion")
+	ctx, cacheSpan := m.tracer.StartSpan(ctx, "cache.incrementCacheVersion")
 	defer cacheSpan.End()
 
-	logger := c.logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := m.logger.WithSpanContext(cacheSpan.SpanContext())
 
 	data := map[string]string{
 		"prefix":    prefix,
@@ -94,7 +128,7 @@ func (c *Cache) incrementCacheVersion(
 	})
 
 	// Generate version key
-	key, err := c.versionGenerator(data)
+	key, err := m.versionGenerator(data)
 	if err != nil {
 		return 0, fmt.Errorf("failed to generate version key: %w", err)
 	}
@@ -110,7 +144,7 @@ func (c *Cache) incrementCacheVersion(
 	}
 
 	// Asynchronously check TTL
-	c.checkVersionTtlAsync(cacheSpan, key, ttl)
+	m.CheckVersionTtlAsync(cacheSpan, key, ttl)
 
 	logger.Debug("version incremented", map[string]interface{}{
 		"version": versionInt,
@@ -119,24 +153,25 @@ func (c *Cache) incrementCacheVersion(
 	return int(versionInt), nil
 }
 
-// checkVersionTtlAsync asynchronously ensures the version key has a TTL.
+// CheckVersionTtlAsync asynchronously ensures the version key has a TTL.
 // If the key doesn't have a TTL, it sets one.
-func (c *Cache) checkVersionTtlAsync(span Span, key string, ttl time.Duration) {
+// This is exported for testing purposes.
+func (m *Manager) CheckVersionTtlAsync(span adapter.Span, key string, ttl time.Duration) {
 	go func() {
-		c.semaphore.Acquire()
-		defer c.semaphore.Release()
+		m.semaphore.Acquire()
+		defer m.semaphore.Release()
 
-		newCtx, cacheTtlSpan := c.tracer.NewSpanFromSpan(
+		newCtx, cacheTtlSpan := m.tracer.NewSpanFromSpan(
 			context.Background(),
 			"cache.checkVersionTtlAsync",
 			span,
 		)
 		defer cacheTtlSpan.End()
 
-		loggerBg := c.logger.WithSpanContext(cacheTtlSpan.SpanContext())
+		loggerBg := m.logger.WithSpanContext(cacheTtlSpan.SpanContext())
 
 		// Get TTL
-		ttlResult, err := c.redisClient.TTL(newCtx, key).Result()
+		ttlResult, err := m.redisClient.TTL(newCtx, key).Result()
 		if err != nil {
 			loggerBg.Error("failed to get TTL", map[string]interface{}{
 				"error": err.Error(),
@@ -152,13 +187,14 @@ func (c *Cache) checkVersionTtlAsync(span Span, key string, ttl time.Duration) {
 				"expire": ttl.String(),
 			})
 
-			if err := c.redisClient.Expire(newCtx, key, ttl).Err(); err != nil {
+			if err := m.redisClient.Expire(newCtx, key, ttl).Err(); err != nil {
 				loggerBg.Error("failed to set expiration time", map[string]interface{}{
 					"error": err.Error(),
 					"key":   key,
 				})
 				return
 			}
+			ttlResult = ttl
 		}
 
 		loggerBg.Debug("version TTL checked", map[string]interface{}{
@@ -169,15 +205,15 @@ func (c *Cache) checkVersionTtlAsync(span Span, key string, ttl time.Duration) {
 }
 
 // InvalidateVersion invalidates all cache entries for a namespace by incrementing the version.
-func (c *Cache) InvalidateVersion(ctx context.Context, namespace string, prefix string) error {
+func (m *Manager) InvalidateVersion(ctx context.Context, namespace string, prefix string, getSession func() redis.Pipeliner) error {
 	if prefix == "" {
-		prefix = c.keyPrefix
+		prefix = m.keyPrefix
 	}
 
-	ctx, cacheSpan := c.tracer.StartSpan(ctx, "cache.InvalidateVersion")
+	ctx, cacheSpan := m.tracer.StartSpan(ctx, "cache.InvalidateVersion")
 	defer cacheSpan.End()
 
-	logger := c.logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := m.logger.WithSpanContext(cacheSpan.SpanContext())
 
 	logger.Debug("invalidating version", map[string]interface{}{
 		"prefix":    prefix,
@@ -185,8 +221,8 @@ func (c *Cache) InvalidateVersion(ctx context.Context, namespace string, prefix 
 	})
 
 	// Use pipeline for atomic operation
-	session := c.GetSession()
-	_, err := c.incrementCacheVersion(ctx, session, prefix, namespace, c.versionExpire)
+	session := getSession()
+	_, err := m.IncrementCacheVersion(ctx, session, prefix, namespace, m.versionExpire)
 	if err != nil {
 		return fmt.Errorf("failed to increment version: %w", err)
 	}

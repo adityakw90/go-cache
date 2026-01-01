@@ -47,8 +47,8 @@ func defaultOptions() *options {
 		lockDuration:        time.Minute,
 		lockInterval:        100 * time.Millisecond,
 		semaphoreSize:       10,
-		tracer:              &NoOpTracer{},
-		logger:              &NoOpLogger{},
+		tracer:              nil,
+		logger:              nil,
 		semaphore:           nil, // Will be created from semaphoreSize
 		keyGenerator:        defaultKeyGenerator,
 		keyVersionGenerator: defaultKeyVersionGenerator,

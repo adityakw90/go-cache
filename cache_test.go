@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/adityakw90/go-cache/internal/errs"
-	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,45 +145,59 @@ func TestCache_registerCacheKey(t *testing.T) {
 	defer redisClient.Close()
 
 	tests := []struct {
-		name      string
-		funcName  string
-		namespace string
-		register  []struct {
-			funcName  string
-			namespace string
+		name     string
+		keyName  string
+		register []struct {
+			keyName string
+			prefix  string
 		}
-		checkFunc func(t *testing.T, keys []string)
+		checkFunc func(t *testing.T, prefixes []string)
 	}{
 		{
-			name:      "register multiple keys",
-			funcName:  "getUser",
-			namespace: "user",
+			name:    "register multiple prefixes for same key",
+			keyName: "getUser",
 			register: []struct {
-				funcName  string
-				namespace string
+				keyName string
+				prefix  string
+			}{
+				{"getUser", "user"},
+				{"getUser", "admin"},
+			},
+			checkFunc: func(t *testing.T, prefixes []string) {
+				assert.Contains(t, prefixes, "user")
+				assert.Contains(t, prefixes, "admin")
+				assert.Equal(t, 2, len(prefixes))
+			},
+		},
+		{
+			name:    "duplicate prefix registration",
+			keyName: "getUser",
+			register: []struct {
+				keyName string
+				prefix  string
+			}{
+				{"getUser", "user"},
+				{"getUser", "user"}, // Duplicate
+			},
+			checkFunc: func(t *testing.T, prefixes []string) {
+				assert.Equal(t, 1, len(prefixes))
+				assert.Contains(t, prefixes, "user")
+			},
+		},
+		{
+			name:    "register different keys with same prefix",
+			keyName: "getUser",
+			register: []struct {
+				keyName string
+				prefix  string
 			}{
 				{"getUser", "user"},
 				{"listUser", "user"},
 			},
-			checkFunc: func(t *testing.T, keys []string) {
-				assert.Contains(t, keys, "getUser")
-				assert.Contains(t, keys, "listUser")
-			},
-		},
-		{
-			name:      "duplicate registration",
-			funcName:  "getUser",
-			namespace: "user2",
-			register: []struct {
-				funcName  string
-				namespace string
-			}{
-				{"getUser", "user2"},
-				{"getUser", "user2"}, // Duplicate
-			},
-			checkFunc: func(t *testing.T, keys []string) {
-				assert.Equal(t, 1, len(keys))
-				assert.Contains(t, keys, "getUser")
+			checkFunc: func(t *testing.T, prefixes []string) {
+				// getUser should only have "user" prefix
+				assert.Equal(t, 1, len(prefixes))
+				assert.Contains(t, prefixes, "user")
 			},
 		},
 	}
@@ -195,11 +208,11 @@ func TestCache_registerCacheKey(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, reg := range tt.register {
-				cache.registerCacheKey(reg.funcName, reg.namespace)
+				cache.registerCacheKey(reg.keyName, reg.prefix)
 			}
-			keys := cache.getCacheKeyUsage(tt.namespace)
+			prefixes := cache.GetCacheKeyUsage(tt.keyName)
 			if tt.checkFunc != nil {
-				tt.checkFunc(t, keys)
+				tt.checkFunc(t, prefixes)
 			}
 		})
 	}
@@ -215,7 +228,7 @@ func TestCache_registerCustomKey(t *testing.T) {
 		name      string
 		funcName  string
 		customKey map[string]interface{}
-		checkFunc func(t *testing.T, exists bool, customKeys map[string]key.CustomKeyFunction)
+		checkFunc func(t *testing.T, exists bool, customKeys map[string]CustomKeyFunction)
 	}{
 		{
 			name:     "register valid custom key",
@@ -227,7 +240,7 @@ func TestCache_registerCustomKey(t *testing.T) {
 				},
 				"params": []string{"uid"},
 			},
-			checkFunc: func(t *testing.T, exists bool, customKeys map[string]key.CustomKeyFunction) {
+			checkFunc: func(t *testing.T, exists bool, customKeys map[string]CustomKeyFunction) {
 				assert.True(t, exists)
 				assert.NotNil(t, customKeys["getUser"])
 			},
@@ -236,7 +249,7 @@ func TestCache_registerCustomKey(t *testing.T) {
 			name:      "register nil custom key",
 			funcName:  "getUser2",
 			customKey: nil,
-			checkFunc: func(t *testing.T, exists bool, customKeys map[string]key.CustomKeyFunction) {
+			checkFunc: func(t *testing.T, exists bool, customKeys map[string]CustomKeyFunction) {
 				assert.False(t, exists)
 			},
 		},
@@ -247,10 +260,10 @@ func TestCache_registerCustomKey(t *testing.T) {
 			cache, err := NewCache(redisClient)
 			require.NoError(t, err)
 
-			var customKey key.CustomKeyFunction
+			var customKey CustomKeyFunction
 			if tt.customKey != nil {
 				var err error
-				customKey, err = key.NewCustomKeyFunction(
+				customKey, err = NewCustomKeyFunction(
 					tt.funcName,
 					tt.customKey["callable"].(func(args ...interface{}) string),
 					tt.customKey["params"].([]string),
@@ -270,7 +283,7 @@ func TestCache_registerCustomKey(t *testing.T) {
 	}
 }
 
-func TestCache_getCacheKeyUsage(t *testing.T) {
+func TestCache_GetCacheKeyUsage(t *testing.T) {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
@@ -281,23 +294,59 @@ func TestCache_getCacheKeyUsage(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		namespace string
-		checkFunc func(t *testing.T, keys []string)
+		keyName   string
+		setup     func()
+		checkFunc func(t *testing.T, prefixes []string)
 	}{
 		{
-			name:      "non-existent namespace",
-			namespace: "nonexistent",
-			checkFunc: func(t *testing.T, keys []string) {
-				assert.Empty(t, keys)
+			name:    "non-existent key",
+			keyName: "nonexistent",
+			setup:   func() {},
+			checkFunc: func(t *testing.T, prefixes []string) {
+				assert.Empty(t, prefixes)
+			},
+		},
+		{
+			name:    "key with single prefix",
+			keyName: "getUser",
+			setup: func() {
+				cache.registerCacheKey("getUser", "user")
+			},
+			checkFunc: func(t *testing.T, prefixes []string) {
+				assert.Equal(t, 1, len(prefixes))
+				assert.Contains(t, prefixes, "user")
+			},
+		},
+		{
+			name:    "key with multiple prefixes",
+			keyName: "getUser",
+			setup: func() {
+				cache.registerCacheKey("getUser", "user")
+				cache.registerCacheKey("getUser", "admin")
+				cache.registerCacheKey("getUser", "public")
+			},
+			checkFunc: func(t *testing.T, prefixes []string) {
+				assert.Equal(t, 3, len(prefixes))
+				assert.Contains(t, prefixes, "user")
+				assert.Contains(t, prefixes, "admin")
+				assert.Contains(t, prefixes, "public")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keys := cache.getCacheKeyUsage(tt.namespace)
+			// Reset cache for each test
+			cache, err = NewCache(redisClient)
+			require.NoError(t, err)
+
+			if tt.setup != nil {
+				tt.setup()
+			}
+
+			prefixes := cache.GetCacheKeyUsage(tt.keyName)
 			if tt.checkFunc != nil {
-				tt.checkFunc(t, keys)
+				tt.checkFunc(t, prefixes)
 			}
 		})
 	}

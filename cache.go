@@ -7,19 +7,20 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/hash"
-	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/lock"
 	"github.com/adityakw90/go-cache/internal/serialize"
+	"github.com/adityakw90/go-cache/internal/version"
 )
 
 // Cache is the main cache structure.
 type Cache struct {
 	redisClient         *redis.Client
-	tracer              Tracer
-	logger              Logger
-	semaphore           Semaphore
+	tracer              adapter.Tracer
+	logger              adapter.Logger
+	semaphore           adapter.Semaphore
 	keyPrefix           string
 	keyGenerator        KeyGeneratorFunc
 	keyVersionGenerator KeyGeneratorFunc
@@ -29,9 +30,10 @@ type Cache struct {
 	lockDuration        time.Duration
 	lockInterval        time.Duration
 	expireDefault       time.Duration
-	keyUsage            map[string][]string                         // To track cache key usage
-	customKeys          map[string]map[string]key.CustomKeyFunction // To track custom key functions
-	keyMutex            sync.Mutex                                  // Mutex to handle concurrent map access
+	keyUsage            map[string][]string                     // To track cache key usage: keyUsage[keyName] = []prefix
+	customKeys          map[string]map[string]CustomKeyFunction // To track custom key functions
+	keyMutex            sync.Mutex                              // Mutex to handle concurrent map access
+	versionManager      *version.Manager
 }
 
 // NewCache creates a new cache instance with functional options.
@@ -58,19 +60,19 @@ func NewCache(redisClient *redis.Client, opts ...Option) (*Cache, error) {
 	// Use provided semaphore or create default
 	semaphore := options.semaphore
 	if semaphore == nil {
-		semaphore = NewDefaultSemaphore(options.semaphoreSize)
+		semaphore = adapter.NewSemaphore(options.semaphoreSize)
 	}
 
 	// Use provided tracer or default to no-op
 	tracer := options.tracer
 	if tracer == nil {
-		tracer = &NoOpTracer{}
+		tracer = adapter.NewNoOpTracer()
 	}
 
 	// Use provided logger or default to no-op
 	logger := options.logger
 	if logger == nil {
-		logger = &NoOpLogger{}
+		logger = adapter.NewNoOpLogger()
 	}
 
 	c := &Cache{
@@ -88,8 +90,21 @@ func NewCache(redisClient *redis.Client, opts ...Option) (*Cache, error) {
 		lockInterval:        options.lockInterval,
 		expireDefault:       options.expireDefault,
 		keyUsage:            make(map[string][]string),
-		customKeys:          make(map[string]map[string]key.CustomKeyFunction),
+		customKeys:          make(map[string]map[string]CustomKeyFunction),
 	}
+
+	// Initialize version manager
+	c.versionManager = version.NewManager(
+		redisClient,
+		tracer,
+		logger,
+		semaphore,
+		func(data map[string]string) (string, error) {
+			return options.versionGenerator(data)
+		},
+		options.versionExpire,
+		options.keyPrefix,
+	)
 
 	return c, nil
 }
@@ -100,31 +115,30 @@ func (c *Cache) GetSession() redis.Pipeliner {
 }
 
 // registerCacheKey registers a cache key for tracking.
+// It stores the mapping: keyUsage[keyName] = []prefix
+// This allows a single key to be registered with multiple prefixes.
 func (c *Cache) registerCacheKey(keyName string, prefix string) {
 	c.keyMutex.Lock()
 	defer c.keyMutex.Unlock()
 
 	// Check if the key is already registered
-	if _, exists := c.keyUsage[prefix]; !exists {
-		c.keyUsage[prefix] = []string{}
+	if _, exists := c.keyUsage[keyName]; !exists {
+		c.keyUsage[keyName] = []string{}
 	}
 
-	// Check if keyName already exists in the list
-	found := false
-	for _, key := range c.keyUsage[prefix] {
-		if key == keyName {
-			found = true
-			break
+	// Check if prefix already exists in the list
+	for _, p := range c.keyUsage[keyName] {
+		if p == prefix {
+			return // Prefix is already registered
 		}
 	}
 
-	if !found {
-		c.keyUsage[prefix] = append(c.keyUsage[prefix], keyName)
-	}
+	// Register the new prefix
+	c.keyUsage[keyName] = append(c.keyUsage[keyName], prefix)
 }
 
 // registerCustomKey registers a custom key function.
-func (c *Cache) registerCustomKey(keyName string, customKeyFunc key.CustomKeyFunction) {
+func (c *Cache) registerCustomKey(keyName string, customKeyFunc CustomKeyFunction) {
 	if customKeyFunc == nil {
 		return
 	}
@@ -133,21 +147,23 @@ func (c *Cache) registerCustomKey(keyName string, customKeyFunc key.CustomKeyFun
 	defer c.keyMutex.Unlock()
 
 	if _, exists := c.customKeys[keyName]; !exists {
-		c.customKeys[keyName] = make(map[string]key.CustomKeyFunction)
+		c.customKeys[keyName] = make(map[string]CustomKeyFunction)
 	}
 
 	c.customKeys[keyName][customKeyFunc.Name()] = customKeyFunc
 }
 
-// getCacheKeyUsage returns the list of key names for a given prefix.
-func (c *Cache) getCacheKeyUsage(prefix string) []string {
+// GetCacheKeyUsage returns the list of prefixes registered for a given key name.
+// This is useful for debugging and monitoring cache key usage.
+// Returns an empty slice if the key is not registered.
+func (c *Cache) GetCacheKeyUsage(keyName string) []string {
 	c.keyMutex.Lock()
 	defer c.keyMutex.Unlock()
 
-	if keys, exists := c.keyUsage[prefix]; exists {
+	if prefixes, exists := c.keyUsage[keyName]; exists {
 		// Return a copy to prevent external modification
-		result := make([]string, len(keys))
-		copy(result, keys)
+		result := make([]string, len(prefixes))
+		copy(result, prefixes)
 		return result
 	}
 
@@ -201,4 +217,31 @@ func (c *Cache) acquireMultipleLock(
 // releaseMultipleLock releases multiple locks.
 func (c *Cache) releaseMultipleLock(ctx context.Context, locks []*lock.LockData) error {
 	return lock.ReleaseMultipleLock(ctx, c.redisClient, locks)
+}
+
+// getCacheVersion retrieves or initializes a cache version.
+func (c *Cache) getCacheVersion(ctx context.Context, namespace string, prefix string) (int, error) {
+	return c.versionManager.GetCacheVersion(ctx, namespace, prefix)
+}
+
+// incrementCacheVersion increments the version counter in a Redis pipeline.
+func (c *Cache) incrementCacheVersion(
+	ctx context.Context,
+	session redis.Pipeliner,
+	prefix string,
+	namespace string,
+	ttl time.Duration,
+) (int, error) {
+	return c.versionManager.IncrementCacheVersion(ctx, session, prefix, namespace, ttl)
+}
+
+// InvalidateVersion invalidates all cache entries for a namespace by incrementing the version.
+func (c *Cache) InvalidateVersion(ctx context.Context, namespace string, prefix string) error {
+	return c.versionManager.InvalidateVersion(ctx, namespace, prefix, c.GetSession)
+}
+
+// checkVersionTtlAsync is a test helper that wraps the version manager's method.
+// This is used for testing internal TTL checking behavior.
+func (c *Cache) checkVersionTtlAsync(span adapter.Span, key string, ttl time.Duration) {
+	c.versionManager.CheckVersionTtlAsync(span, key, ttl)
 }

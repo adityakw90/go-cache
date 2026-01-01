@@ -1,5 +1,8 @@
 package key
 
+// KeyGeneratorFunc generates a cache key from data.
+type KeyGeneratorFunc func(data map[string]string) (string, error)
+
 type CustomKeyFunction interface {
 	Name() string
 	Call(params map[string]interface{}) (string, error)

@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -54,7 +53,7 @@ func (c *Cache) Cached(
 	prefix string,
 ) func(
 	fn func(ctx context.Context, args ...interface{}) (interface{}, error),
-	customKeyFunc key.CustomKeyFunction,
+	customKeyFunc CustomKeyFunction,
 ) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 	// Set default prefix if not provided
 	if prefix == "" {
@@ -66,7 +65,7 @@ func (c *Cache) Cached(
 
 	return func(
 		fn func(ctx context.Context, args ...interface{}) (interface{}, error),
-		customKeyFunc key.CustomKeyFunction,
+		customKeyFunc CustomKeyFunction,
 	) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 		if customKeyFunc != nil {
 			// Register custom key function

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -132,7 +131,7 @@ func TestCache_Cached_WithCustomKey(t *testing.T) {
 	}
 
 	// Custom key function
-	customKey, err := key.NewCustomKeyFunction(
+	customKey, err := NewCustomKeyFunction(
 		"testFunc",
 		func(args ...interface{}) string {
 			return "custom:" + args[0].(string)

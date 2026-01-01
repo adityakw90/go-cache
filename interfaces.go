@@ -1,47 +1,26 @@
 package cache
 
 import (
-	"context"
+	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/internal/key"
 )
 
-// Tracer interface for optional observability.
-// Implementations can provide distributed tracing capabilities.
-type Tracer interface {
-	StartSpan(ctx context.Context, name string) (context.Context, Span)                    // StartSpan starts a new span with the given name. Returns a context with the span and the span itself.
-	NewSpanFromSpan(ctx context.Context, name string, parent Span) (context.Context, Span) // NewSpanFromSpan creates a new span from an existing span (child span). Returns a context with the new span and the span itself.
-}
+// re-export
+type Tracer = adapter.Tracer
+type Span = adapter.Span
+type SpanContext = adapter.SpanContext
+type SpanAttribute = adapter.SpanAttribute
+type Logger = adapter.Logger
+type Semaphore = adapter.Semaphore
 
-// Span represents a tracing span.
-// Implementations should provide methods to add events, attributes, and end the span.
-type Span interface {
-	End()                                         // End finishes the span.
-	AddEvent(name string, attrs ...SpanAttribute) // AddEvent adds an event to the span.
-	SetAttributes(attrs ...SpanAttribute)         // SetAttributes sets attributes on the span.
-	SpanContext() SpanContext                     // SpanContext returns the span context for propagation.
-}
+// re export custom key function
+type CustomKeyFunction = key.CustomKeyFunction
 
-// SpanContext represents span context for propagation.
-type SpanContext interface {
-	TraceID() string // TraceID returns the trace ID.
-	SpanID() string  // SpanID returns the span ID.
-}
-
-// SpanAttribute represents a span attribute.
-// Implementations should provide a way to create attributes.
-type SpanAttribute interface{}
-
-// Logger interface for optional observability.
-// Implementations can provide structured logging capabilities.
-type Logger interface {
-	Info(msg string, fields map[string]interface{})  // Info logs an informational message with optional fields.
-	Error(msg string, fields map[string]interface{}) // Error logs an error message with optional fields.
-	Debug(msg string, fields map[string]interface{}) // Debug logs a debug message with optional fields.
-	WithSpanContext(spanContext SpanContext) Logger  // WithSpanContext returns a logger with span context for correlation.
-}
-
-// Semaphore interface for concurrency control.
-// Implementations should provide acquire/release semantics.
-type Semaphore interface {
-	Acquire() // Acquire acquires a semaphore permit, blocking if necessary.
-	Release() // Release releases a semaphore permit.
+// NewCustomKeyFunction creates a new custom key function.
+func NewCustomKeyFunction(
+	name string,
+	callable func(args ...interface{}) string,
+	params []string,
+) (CustomKeyFunction, error) {
+	return key.NewCustomKeyFunction(name, callable, params)
 }
