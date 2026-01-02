@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adityakw90/go-cache/internal/hash"
 	"github.com/adityakw90/go-cache/internal/key"
+	"github.com/adityakw90/go-cache/internal/serialize"
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -497,4 +499,375 @@ func TestCache_Cached_DeserializeError(t *testing.T) {
 
 	// Note: Mock expectations may not be fully met due to async operations
 	// This is acceptable for these tests
+}
+
+func TestCache_Cached_CacheHitWithProperDeserialization(t *testing.T) {
+	client, mock := redismock.NewClientMock()
+	defer client.Close()
+
+	cache, err := NewCache(client, Options{
+		KeyPrefix:           "test",
+		ExpireDefault:       5 * time.Minute,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	callCount := 0
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		callCount++
+		return "cached-result", nil
+	}
+
+	cachedFunc := cache.Cached(
+		"testFunc",
+		5*time.Minute,
+		false,
+		"test",
+	)(fn, nil)
+
+	// Generate expected cache key with proper hash
+	namespace := "testFunc"
+	hashKey := hash.CacheKey(namespace, []interface{}{"arg1"})
+	cacheKey, err := key.KeyVersionGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+		"version":   "0",
+		"key":       hashKey,
+	})
+	require.NoError(t, err)
+
+	// Serialize the expected result using Gob
+	serializedData, err := serialize.Serialize("cached-result")
+	require.NoError(t, err)
+
+	// Mock cache hit - return serialized data
+	mock.ExpectGet(cacheKey).SetVal(string(serializedData))
+
+	// Call function - should return cached data
+	var result string
+	res, err := cachedFunc(&result, ctx, "arg1")
+	require.NoError(t, err)
+	assert.Equal(t, 0, callCount) // Function should not be called
+	assert.Equal(t, "cached-result", result)
+	assert.Equal(t, &result, res) // Should return resultType
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCache_Cached_RedisGetError(t *testing.T) {
+	client, mock := redismock.NewClientMock()
+	defer client.Close()
+
+	cache, err := NewCache(client, Options{
+		KeyPrefix:           "test",
+		ExpireDefault:       5 * time.Minute,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	callCount := 0
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		callCount++
+		return "result", nil
+	}
+
+	cachedFunc := cache.Cached(
+		"testFunc",
+		5*time.Minute,
+		false,
+		"test",
+	)(fn, nil)
+
+	// Generate expected cache key with proper hash
+	namespace := "testFunc"
+	hashKey := hash.CacheKey(namespace, []interface{}{"arg1"})
+	cacheKey, err := key.KeyVersionGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+		"version":   "0",
+		"key":       hashKey,
+	})
+	require.NoError(t, err)
+
+	// Mock Redis Get error (non-Nil error)
+	mock.ExpectGet(cacheKey).SetErr(assert.AnError)
+
+	// Call function - should fall back to executing function
+	var result string
+	res, err := cachedFunc(&result, ctx, "arg1")
+	require.NoError(t, err)
+	assert.Equal(t, 1, callCount) // Function should be called
+	assert.Equal(t, "result", res)
+
+	// Wait for async cache update attempt
+	time.Sleep(300 * time.Millisecond)
+}
+
+func TestCache_Cached_TTLFunctionPath(t *testing.T) {
+	client, mock := redismock.NewClientMock()
+	defer client.Close()
+
+	cache, err := NewCache(client, Options{
+		KeyPrefix:           "test",
+		ExpireDefault:       5 * time.Minute,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	callCount := 0
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		callCount++
+		return map[string]string{"status": "ok"}, nil
+	}
+
+	// Create cached function with TTL function
+	ttlFunc := func(result interface{}, args ...interface{}) time.Duration {
+		// Return different TTL based on result
+		if m, ok := result.(map[string]string); ok && m["status"] == "ok" {
+			return 10 * time.Minute
+		}
+		return 5 * time.Minute
+	}
+
+	cachedFunc := cache.Cached(
+		"testFunc",
+		ttlFunc,
+		false,
+		"test",
+	)(fn, nil)
+
+	// Generate expected keys with proper hash
+	namespace := "testFunc"
+	hashKey := hash.CacheKey(namespace, []interface{}{"arg1"})
+	cacheKey, err := key.KeyVersionGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+		"version":   "0",
+		"key":       hashKey,
+	})
+	require.NoError(t, err)
+
+	lockKey, err := key.LockGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+	})
+	require.NoError(t, err)
+
+	// Mock cache miss
+	mock.ExpectGet(cacheKey).RedisNil()
+	// Mock async cache update: lock acquisition
+	mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
+	// Mock Set with TTL from function (10 minutes)
+	mock.Regexp().ExpectSet(cacheKey, `.*`, 10*time.Minute).SetVal("OK")
+	// Mock lock release
+	mock.Regexp().ExpectEvalSha(`.*`, []string{lockKey}, []interface{}{`.*`}).SetErr(assert.AnError)
+	mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
+
+	// Call function
+	var result map[string]string
+	res, err := cachedFunc(&result, ctx, "arg1")
+	require.NoError(t, err)
+	assert.Equal(t, 1, callCount)
+	assert.Equal(t, map[string]string{"status": "ok"}, res)
+
+	// Wait for async cache update
+	time.Sleep(300 * time.Millisecond)
+
+	// Note: Some expectations may not be met due to async operations
+}
+
+func TestCache_Cached_TTLDefaultPath(t *testing.T) {
+	client, mock := redismock.NewClientMock()
+	defer client.Close()
+
+	cache, err := NewCache(client, Options{
+		KeyPrefix:           "test",
+		ExpireDefault:       7 * time.Minute, // Default TTL
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		return "result", nil
+	}
+
+	// Create cached function with invalid TTL type (should use default)
+	cachedFunc := cache.Cached(
+		"testFunc",
+		"invalid-ttl-type", // Invalid type, should use default
+		false,
+		"test",
+	)(fn, nil)
+
+	// Generate expected keys with proper hash
+	namespace := "testFunc"
+	hashKey := hash.CacheKey(namespace, []interface{}{"arg1"})
+	cacheKey, err := key.KeyVersionGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+		"version":   "0",
+		"key":       hashKey,
+	})
+	require.NoError(t, err)
+
+	lockKey, err := key.LockGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+	})
+	require.NoError(t, err)
+
+	// Mock cache miss
+	mock.ExpectGet(cacheKey).RedisNil()
+	// Mock async cache update: lock acquisition
+	mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
+	// Mock Set with default TTL (7 minutes)
+	mock.Regexp().ExpectSet(cacheKey, `.*`, 7*time.Minute).SetVal("OK")
+	// Mock lock release
+	mock.Regexp().ExpectEvalSha(`.*`, []string{lockKey}, []interface{}{`.*`}).SetErr(assert.AnError)
+	mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
+
+	// Call function
+	var result string
+	_, err = cachedFunc(&result, ctx, "arg1")
+	require.NoError(t, err)
+
+	// Wait for async cache update
+	time.Sleep(300 * time.Millisecond)
+}
+
+func TestCache_Cached_VersioningWithCacheHit(t *testing.T) {
+	client, mock := redismock.NewClientMock()
+	defer client.Close()
+
+	cache, err := NewCache(client, Options{
+		KeyPrefix:           "test",
+		ExpireDefault:       5 * time.Minute,
+		VersionExpire:       1 * time.Hour,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	callCount := 0
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		callCount++
+		return "versioned-result", nil
+	}
+
+	cachedFunc := cache.Cached(
+		"testFunc",
+		5*time.Minute,
+		true, // versioning enabled
+		"test",
+	)(fn, nil)
+
+	// Generate expected keys
+	namespace := "testFunc"
+	versionKey, err := key.VersionGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+	})
+	require.NoError(t, err)
+
+	hashKey := hash.CacheKey(namespace, []interface{}{"arg1"})
+	cacheKey, err := key.KeyVersionGenerator(map[string]string{
+		"prefix":    "test",
+		"namespace": namespace,
+		"version":   "1", // Version 1
+		"key":       hashKey,
+	})
+	require.NoError(t, err)
+
+	// Serialize the expected result using Gob
+	serializedData, err := serialize.Serialize("versioned-result")
+	require.NoError(t, err)
+
+	// Mock version retrieval
+	mock.ExpectGet(versionKey).SetVal("1")
+	// Mock cache hit
+	mock.ExpectGet(cacheKey).SetVal(string(serializedData))
+
+	// Call function - should return cached data
+	var result string
+	res, err := cachedFunc(&result, ctx, "arg1")
+	require.NoError(t, err)
+	assert.Equal(t, 0, callCount) // Function should not be called
+	assert.Equal(t, "versioned-result", result)
+	assert.Equal(t, &result, res)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCache_Cached_CustomKeyCallable(t *testing.T) {
+	client, mock := redismock.NewClientMock()
+	defer client.Close()
+
+	cache, err := NewCache(client, Options{
+		KeyPrefix:           "test",
+		ExpireDefault:       5 * time.Minute,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	callCount := 0
+
+	// Create custom key function
+	customKey, err := key.NewCustomKeyFunction(
+		"getUser",
+		func(args ...interface{}) string {
+			if len(args) == 0 {
+				return "default"
+			}
+			return "user:" + args[0].(string)
+		},
+		[]string{"uid"},
+	)
+	require.NoError(t, err)
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		callCount++
+		return "result", nil
+	}
+
+	cachedFunc := cache.Cached(
+		"getUser",
+		5*time.Minute,
+		false,
+		"user",
+	)(fn, customKey)
+
+	// Call with empty args - customKey.Callable will handle it
+	var result string
+	res, err := cachedFunc(&result, ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 1, callCount)
+	assert.Equal(t, "result", res)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
