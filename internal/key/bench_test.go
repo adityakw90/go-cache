@@ -71,7 +71,7 @@ func BenchmarkKey_stringBuilder(b *testing.B) {
 //
 // This benchmark measures the performance of generating simple cache keys
 // in the format: {prefix}:{key}.gob
-func BenchmarkKeyGenerator(b *testing.B) {
+func BenchmarkKey_KeyGenerator(b *testing.B) {
 	data := map[string]string{
 		"prefix": "cache",
 		"key":    "user:123",
@@ -86,7 +86,7 @@ func BenchmarkKeyGenerator(b *testing.B) {
 //
 // This benchmark measures the performance of generating versioned cache keys
 // in the format: {prefix}:{namespace}:v{version}-{key}.gob
-func BenchmarkKeyVersionGenerator(b *testing.B) {
+func BenchmarkKey_KeyVersionGenerator(b *testing.B) {
 	data := map[string]string{
 		"prefix":    "cache",
 		"namespace": "users",
@@ -103,7 +103,7 @@ func BenchmarkKeyVersionGenerator(b *testing.B) {
 //
 // This benchmark measures the performance of generating version keys
 // in the format: {prefix}:{namespace}:version
-func BenchmarkVersionGenerator(b *testing.B) {
+func BenchmarkKey_VersionGenerator(b *testing.B) {
 	data := map[string]string{
 		"prefix":    "cache",
 		"namespace": "users",
@@ -118,7 +118,7 @@ func BenchmarkVersionGenerator(b *testing.B) {
 //
 // This benchmark measures the performance of generating lock keys
 // in the format: {prefix}:{namespace}:lock
-func BenchmarkLockGenerator(b *testing.B) {
+func BenchmarkKey_LockGenerator(b *testing.B) {
 	data := map[string]string{
 		"prefix":    "cache",
 		"namespace": "users",
