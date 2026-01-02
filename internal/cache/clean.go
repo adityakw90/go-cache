@@ -26,7 +26,7 @@ func (c *Cache) CleanCache(
 	logger := c.Logger.WithSpanContext(cacheSpan.SpanContext())
 
 	// Find all cache key usages for the provided key
-	listPrefix := c.GetCacheKeyUsage(key)
+	listPrefix := c.getCacheKeyUsage(key)
 	if len(listPrefix) == 0 {
 		return nil
 	}
@@ -34,7 +34,7 @@ func (c *Cache) CleanCache(
 	// Check if a Redis session (pipeline) is provided, if not, create a new session
 	if session == nil {
 		logger.Debug("creating session cache", nil)
-		session = c.GetSession()
+		session = c.getSession()
 	}
 	if listLockedKey == nil {
 		listLockedKey = &[]string{}

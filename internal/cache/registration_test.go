@@ -24,7 +24,7 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			prefix:  "user",
 			setup:   func(c *Cache) {},
 			checkFunc: func(t *testing.T, c *Cache) {
-				prefixes := c.GetCacheKeyUsage("getUser")
+				prefixes := c.getCacheKeyUsage("getUser")
 				assert.Len(t, prefixes, 1)
 				assert.Contains(t, prefixes, "user")
 			},
@@ -34,10 +34,10 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			keyName: "getUser",
 			prefix:  "admin",
 			setup: func(c *Cache) {
-				c.RegisterCacheKey("getUser", "user")
+				c.registerCacheKey("getUser", "user")
 			},
 			checkFunc: func(t *testing.T, c *Cache) {
-				prefixes := c.GetCacheKeyUsage("getUser")
+				prefixes := c.getCacheKeyUsage("getUser")
 				assert.Len(t, prefixes, 2)
 				assert.Contains(t, prefixes, "user")
 				assert.Contains(t, prefixes, "admin")
@@ -48,10 +48,10 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			keyName: "getUser",
 			prefix:  "user",
 			setup: func(c *Cache) {
-				c.RegisterCacheKey("getUser", "user")
+				c.registerCacheKey("getUser", "user")
 			},
 			checkFunc: func(t *testing.T, c *Cache) {
-				prefixes := c.GetCacheKeyUsage("getUser")
+				prefixes := c.getCacheKeyUsage("getUser")
 				assert.Len(t, prefixes, 1)
 				assert.Contains(t, prefixes, "user")
 			},
@@ -61,11 +61,11 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			keyName: "listUsers",
 			prefix:  "user",
 			setup: func(c *Cache) {
-				c.RegisterCacheKey("getUser", "user")
+				c.registerCacheKey("getUser", "user")
 			},
 			checkFunc: func(t *testing.T, c *Cache) {
-				getUserPrefixes := c.GetCacheKeyUsage("getUser")
-				listUsersPrefixes := c.GetCacheKeyUsage("listUsers")
+				getUserPrefixes := c.getCacheKeyUsage("getUser")
+				listUsersPrefixes := c.getCacheKeyUsage("listUsers")
 				assert.Len(t, getUserPrefixes, 1)
 				assert.Len(t, listUsersPrefixes, 1)
 				assert.Contains(t, getUserPrefixes, "user")
@@ -78,7 +78,7 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			prefix:  "",
 			setup:   func(c *Cache) {},
 			checkFunc: func(t *testing.T, c *Cache) {
-				prefixes := c.GetCacheKeyUsage("getUser")
+				prefixes := c.getCacheKeyUsage("getUser")
 				assert.Len(t, prefixes, 1)
 				assert.Contains(t, prefixes, "")
 			},
@@ -94,7 +94,7 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			require.NoError(t, err)
 
 			tt.setup(cache)
-			cache.RegisterCacheKey(tt.keyName, tt.prefix)
+			cache.registerCacheKey(tt.keyName, tt.prefix)
 			tt.checkFunc(t, cache)
 
 			assert.NoError(t, mock.ExpectationsWereMet())
@@ -119,9 +119,9 @@ func TestCache_RegisterCacheKey_Concurrent(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			for j := 0; j < iterations; j++ {
-				cache.RegisterCacheKey("getUser", "user")
-				cache.RegisterCacheKey("getUser", "admin")
-				cache.RegisterCacheKey("listUsers", "user")
+				cache.registerCacheKey("getUser", "user")
+				cache.registerCacheKey("getUser", "admin")
+				cache.registerCacheKey("listUsers", "user")
 			}
 		}(i)
 	}
@@ -129,8 +129,8 @@ func TestCache_RegisterCacheKey_Concurrent(t *testing.T) {
 	wg.Wait()
 
 	// Verify final state
-	getUserPrefixes := cache.GetCacheKeyUsage("getUser")
-	listUsersPrefixes := cache.GetCacheKeyUsage("listUsers")
+	getUserPrefixes := cache.getCacheKeyUsage("getUser")
+	listUsersPrefixes := cache.getCacheKeyUsage("listUsers")
 
 	assert.Len(t, getUserPrefixes, 2)
 	assert.Contains(t, getUserPrefixes, "user")
@@ -202,7 +202,7 @@ func TestCache_RegisterCustomKey(t *testing.T) {
 					},
 					[]string{"uid"},
 				)
-				c.RegisterCustomKey("getUser", k)
+				c.registerCustomKey("getUser", k)
 			},
 			checkFunc: func(t *testing.T, c *Cache) {
 				// Both custom keys should be registered
@@ -220,7 +220,7 @@ func TestCache_RegisterCustomKey(t *testing.T) {
 			require.NoError(t, err)
 
 			tt.setup(cache)
-			cache.RegisterCustomKey(tt.keyName, tt.customKey)
+			cache.registerCustomKey(tt.keyName, tt.customKey)
 			tt.checkFunc(t, cache)
 
 			assert.NoError(t, mock.ExpectationsWereMet())
@@ -250,7 +250,7 @@ func TestCache_RegisterCustomKey_Concurrent(t *testing.T) {
 				[]string{"uid"},
 			)
 			require.NoError(t, err)
-			cache.RegisterCustomKey("getUser", k)
+			cache.registerCustomKey("getUser", k)
 		}(i)
 	}
 
@@ -281,7 +281,7 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			name:    "key with single prefix",
 			keyName: "getUser",
 			setup: func(c *Cache) {
-				c.RegisterCacheKey("getUser", "user")
+				c.registerCacheKey("getUser", "user")
 			},
 			checkFunc: func(t *testing.T, prefixes []string) {
 				assert.Len(t, prefixes, 1)
@@ -292,9 +292,9 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			name:    "key with multiple prefixes",
 			keyName: "getUser",
 			setup: func(c *Cache) {
-				c.RegisterCacheKey("getUser", "user")
-				c.RegisterCacheKey("getUser", "admin")
-				c.RegisterCacheKey("getUser", "public")
+				c.registerCacheKey("getUser", "user")
+				c.registerCacheKey("getUser", "admin")
+				c.registerCacheKey("getUser", "public")
 			},
 			checkFunc: func(t *testing.T, prefixes []string) {
 				assert.Len(t, prefixes, 3)
@@ -307,7 +307,7 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			name:    "returns copy of prefixes",
 			keyName: "getUser",
 			setup: func(c *Cache) {
-				c.RegisterCacheKey("getUser", "user")
+				c.registerCacheKey("getUser", "user")
 			},
 			checkFunc: func(t *testing.T, prefixes []string) {
 				// Modify the returned slice
@@ -329,7 +329,7 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			require.NoError(t, err)
 
 			tt.setup(cache)
-			prefixes := cache.GetCacheKeyUsage(tt.keyName)
+			prefixes := cache.getCacheKeyUsage(tt.keyName)
 			tt.checkFunc(t, prefixes)
 
 			assert.NoError(t, mock.ExpectationsWereMet())
@@ -344,8 +344,8 @@ func TestCache_GetCacheKeyUsage_Concurrent(t *testing.T) {
 	cache, err := NewCache(client, Options{})
 	require.NoError(t, err)
 
-	cache.RegisterCacheKey("getUser", "user")
-	cache.RegisterCacheKey("getUser", "admin")
+	cache.registerCacheKey("getUser", "user")
+	cache.registerCacheKey("getUser", "admin")
 
 	var wg sync.WaitGroup
 	concurrency := 10
@@ -354,7 +354,7 @@ func TestCache_GetCacheKeyUsage_Concurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			prefixes := cache.GetCacheKeyUsage("getUser")
+			prefixes := cache.getCacheKeyUsage("getUser")
 			assert.Len(t, prefixes, 2)
 		}()
 	}

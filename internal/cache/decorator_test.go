@@ -35,7 +35,7 @@ func TestCache_Cached_RegistersKey(t *testing.T) {
 	)
 
 	// Verify key is registered
-	prefixes := cache.GetCacheKeyUsage("testFunc")
+	prefixes := cache.getCacheKeyUsage("testFunc")
 	assert.Contains(t, prefixes, "customPrefix")
 
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -63,7 +63,7 @@ func TestCache_Cached_UsesDefaultPrefix(t *testing.T) {
 	)
 
 	// Verify default prefix is used
-	prefixes := cache.GetCacheKeyUsage("testFunc")
+	prefixes := cache.getCacheKeyUsage("testFunc")
 	assert.Contains(t, prefixes, "default")
 
 	assert.NoError(t, mock.ExpectationsWereMet())

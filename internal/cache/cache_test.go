@@ -200,7 +200,7 @@ func TestCache_NewCache_InitializesMaps(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify that keyUsage and customKeys maps are initialized
-	prefixes := cache.GetCacheKeyUsage("nonexistent")
+	prefixes := cache.getCacheKeyUsage("nonexistent")
 	assert.Empty(t, prefixes)
 	assert.NotNil(t, prefixes)
 

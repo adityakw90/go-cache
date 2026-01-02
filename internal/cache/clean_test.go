@@ -54,7 +54,7 @@ func TestCache_CleanCache_StandardKey(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -129,8 +129,8 @@ func TestCache_CleanCache_WithCustomKey(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register cache key with custom key function
-	cache.RegisterCacheKey("getUser", "user")
-	cache.RegisterCustomKey("getUser", customKey)
+	cache.registerCacheKey("getUser", "user")
+	cache.registerCustomKey("getUser", customKey)
 
 	// Generate keys for mock setup
 	namespace := "user:123"
@@ -193,8 +193,8 @@ func TestCache_CleanCache_MultiplePrefixes(t *testing.T) {
 	ctx := context.Background()
 
 	// Register same key with multiple prefixes
-	cache.RegisterCacheKey("testKey", "prefix1")
-	cache.RegisterCacheKey("testKey", "prefix2")
+	cache.registerCacheKey("testKey", "prefix1")
+	cache.registerCacheKey("testKey", "prefix2")
 
 	// Generate keys for both prefixes
 	versionKey1, err := key.VersionGenerator(map[string]string{
@@ -277,7 +277,7 @@ func TestCache_CleanCache_WithoutExecute(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -317,10 +317,10 @@ func TestCache_CleanCache_WithExistingSession(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Create a session
-	session := cache.GetSession()
+	session := cache.getSession()
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -379,7 +379,7 @@ func TestCache_CleanCache_WithLockKeys(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -443,7 +443,7 @@ func TestCache_CleanCache_WithNilLockKeys(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -490,8 +490,8 @@ func TestCache_CleanCache_CustomKeyError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register cache key with custom key function
-	cache.RegisterCacheKey("getUser", "user")
-	cache.RegisterCustomKey("getUser", customKey)
+	cache.registerCacheKey("getUser", "user")
+	cache.registerCustomKey("getUser", customKey)
 
 	// Clean cache with missing params (should cause error in Call)
 	params := map[string]interface{}{
@@ -541,9 +541,9 @@ func TestCache_CleanCache_MultipleCustomKeys(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register cache key with multiple custom key functions
-	cache.RegisterCacheKey("getUser", "user")
-	cache.RegisterCustomKey("getUser", customKey1)
-	cache.RegisterCustomKey("getUser", customKey2)
+	cache.registerCacheKey("getUser", "user")
+	cache.registerCustomKey("getUser", customKey1)
+	cache.registerCustomKey("getUser", customKey2)
 
 	// Generate keys for both custom namespaces
 	namespace1 := "user:v1:123"
@@ -630,7 +630,7 @@ func TestCache_CleanCache_LockGenerationError(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate version key for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -669,7 +669,7 @@ func TestCache_CleanCache_AcquireMultipleLockError(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -717,7 +717,7 @@ func TestCache_CleanCache_PipelineExecError(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate keys for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -772,7 +772,7 @@ func TestCache_CleanCache_IncrementCacheVersionError(t *testing.T) {
 	ctx := context.Background()
 
 	// Register a cache key
-	cache.RegisterCacheKey("testKey", "testPrefix")
+	cache.registerCacheKey("testKey", "testPrefix")
 
 	// Generate version key for mock setup
 	versionKey, err := key.VersionGenerator(map[string]string{
@@ -827,8 +827,8 @@ func TestCache_CleanCache_CustomKeyLockGenerationError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register cache key with custom key function
-	cache.RegisterCacheKey("getUser", "user")
-	cache.RegisterCustomKey("getUser", customKey)
+	cache.registerCacheKey("getUser", "user")
+	cache.registerCustomKey("getUser", customKey)
 
 	// Generate version key for mock setup
 	namespace := "user:123"

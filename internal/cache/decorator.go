@@ -29,7 +29,7 @@ func (c *Cache) Cached(
 	}
 
 	// Register cache key usage
-	c.RegisterCacheKey(keyName, prefix)
+	c.registerCacheKey(keyName, prefix)
 
 	return func(
 		fn func(ctx context.Context, args ...interface{}) (interface{}, error),
@@ -37,7 +37,7 @@ func (c *Cache) Cached(
 	) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 		if customKeyFunc != nil {
 			// Register custom key function
-			c.RegisterCustomKey(keyName, customKeyFunc)
+			c.registerCustomKey(keyName, customKeyFunc)
 		}
 
 		return func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {

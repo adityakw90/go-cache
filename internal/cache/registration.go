@@ -2,10 +2,10 @@ package cache
 
 import "github.com/adityakw90/go-cache/internal/key"
 
-// RegisterCacheKey registers a cache key for tracking.
+// registerCacheKey registers a cache key for tracking.
 // It stores the mapping: keyUsage[keyName] = []prefix
 // This allows a single key to be registered with multiple prefixes.
-func (c *Cache) RegisterCacheKey(keyName string, prefix string) {
+func (c *Cache) registerCacheKey(keyName string, prefix string) {
 	c.keyMutex.Lock()
 	defer c.keyMutex.Unlock()
 
@@ -25,8 +25,8 @@ func (c *Cache) RegisterCacheKey(keyName string, prefix string) {
 	c.keyUsage[keyName] = append(c.keyUsage[keyName], prefix)
 }
 
-// RegisterCustomKey registers a custom key function.
-func (c *Cache) RegisterCustomKey(keyName string, customKeyFunc key.CustomKeyFunction) {
+// registerCustomKey registers a custom key function.
+func (c *Cache) registerCustomKey(keyName string, customKeyFunc key.CustomKeyFunction) {
 	if customKeyFunc == nil {
 		return
 	}
@@ -41,10 +41,10 @@ func (c *Cache) RegisterCustomKey(keyName string, customKeyFunc key.CustomKeyFun
 	c.customKeys[keyName][customKeyFunc.Name()] = customKeyFunc
 }
 
-// GetCacheKeyUsage returns the list of prefixes registered for a given key name.
+// getCacheKeyUsage returns the list of prefixes registered for a given key name.
 // This is useful for debugging and monitoring cache key usage.
 // Returns an empty slice if the key is not registered.
-func (c *Cache) GetCacheKeyUsage(keyName string) []string {
+func (c *Cache) getCacheKeyUsage(keyName string) []string {
 	c.keyMutex.Lock()
 	defer c.keyMutex.Unlock()
 

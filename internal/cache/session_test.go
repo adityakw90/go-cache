@@ -39,8 +39,8 @@ func TestCache_GetSession(t *testing.T) {
 				cache, err := NewCache(client, Options{})
 				require.NoError(t, err)
 
-				session1 := cache.GetSession()
-				session2 := cache.GetSession()
+				session1 := cache.getSession()
+				session2 := cache.getSession()
 
 				// Should be different instances
 				assert.NotSame(t, session1, session2)
@@ -58,7 +58,7 @@ func TestCache_GetSession(t *testing.T) {
 			cache, err := NewCache(client, Options{})
 			require.NoError(t, err)
 
-			session := cache.GetSession()
+			session := cache.getSession()
 			if tt.checkFunc != nil {
 				tt.checkFunc(t, session, mock)
 			}
@@ -73,7 +73,7 @@ func TestCache_GetSession_CanBeUsed(t *testing.T) {
 	cache, err := NewCache(client, Options{})
 	require.NoError(t, err)
 
-	session := cache.GetSession()
+	session := cache.getSession()
 	assert.NotNil(t, session)
 
 	// Set up mock expectations for pipeline operations
