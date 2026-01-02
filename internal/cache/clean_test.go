@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +18,9 @@ func TestCache_CleanCache_NoRegisteredKey(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -41,6 +45,9 @@ func TestCache_CleanCache_StandardKey(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -106,6 +113,9 @@ func TestCache_CleanCache_WithCustomKey(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -180,6 +190,9 @@ func TestCache_CleanCache_MultiplePrefixes(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -264,6 +277,9 @@ func TestCache_CleanCache_WithoutExecute(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -304,6 +320,9 @@ func TestCache_CleanCache_WithExistingSession(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -366,6 +385,9 @@ func TestCache_CleanCache_WithLockKeys(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -430,6 +452,9 @@ func TestCache_CleanCache_WithNilLockKeys(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -467,6 +492,9 @@ func TestCache_CleanCache_CustomKeyError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -509,6 +537,9 @@ func TestCache_CleanCache_MultipleCustomKeys(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -617,6 +648,9 @@ func TestCache_CleanCache_LockGenerationError(t *testing.T) {
 	}
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -656,6 +690,9 @@ func TestCache_CleanCache_AcquireMultipleLockError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -704,6 +741,9 @@ func TestCache_CleanCache_PipelineExecError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -759,6 +799,9 @@ func TestCache_CleanCache_IncrementCacheVersionError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,
@@ -804,6 +847,9 @@ func TestCache_CleanCache_CustomKeyLockGenerationError(t *testing.T) {
 	}
 
 	cache, err := NewCache(client, Options{
+		Tracer:           adapter.NewNoOpTracer(),
+		Logger:           adapter.NewNoOpLogger(),
+		Semaphore:        adapter.NewSemaphore(10),
 		KeyPrefix:        "test",
 		ExpireDefault:    5 * time.Minute,
 		VersionExpire:    1 * time.Hour,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
@@ -36,7 +37,11 @@ func TestCache_GetSession(t *testing.T) {
 			name: "multiple calls return different instances",
 			checkFunc: func(t *testing.T, session redis.Pipeliner, mock redismock.ClientMock) {
 				client, mock2 := redismock.NewClientMock()
-				cache, err := NewCache(client, Options{})
+				cache, err := NewCache(client, Options{
+					Tracer:    adapter.NewNoOpTracer(),
+					Logger:    adapter.NewNoOpLogger(),
+					Semaphore: adapter.NewSemaphore(10),
+				})
 				require.NoError(t, err)
 
 				session1 := cache.getSession()
@@ -55,7 +60,11 @@ func TestCache_GetSession(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			defer client.Close()
 
-			cache, err := NewCache(client, Options{})
+			cache, err := NewCache(client, Options{
+				Tracer:    adapter.NewNoOpTracer(),
+				Logger:    adapter.NewNoOpLogger(),
+				Semaphore: adapter.NewSemaphore(10),
+			})
 			require.NoError(t, err)
 
 			session := cache.getSession()
@@ -70,7 +79,11 @@ func TestCache_GetSession_CanBeUsed(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	cache, err := NewCache(client, Options{})
+	cache, err := NewCache(client, Options{
+		Tracer:    adapter.NewNoOpTracer(),
+		Logger:    adapter.NewNoOpLogger(),
+		Semaphore: adapter.NewSemaphore(10),
+	})
 	require.NoError(t, err)
 
 	session := cache.getSession()

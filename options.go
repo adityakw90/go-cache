@@ -30,14 +30,6 @@ type options struct {
 	lockGenerator       KeyGeneratorFunc
 }
 
-// re export key generator functions
-var (
-	defaultKeyGenerator        = key.KeyGenerator
-	defaultKeyVersionGenerator = key.KeyVersionGenerator
-	defaultVersionGenerator    = key.VersionGenerator
-	defaultLockGenerator       = key.LockGenerator
-)
-
 // defaultOptions returns default cache options.
 func defaultOptions() *options {
 	return &options{
@@ -50,10 +42,10 @@ func defaultOptions() *options {
 		tracer:              nil,
 		logger:              nil,
 		semaphore:           nil, // Will be created from semaphoreSize
-		keyGenerator:        defaultKeyGenerator,
-		keyVersionGenerator: defaultKeyVersionGenerator,
-		versionGenerator:    defaultVersionGenerator,
-		lockGenerator:       defaultLockGenerator,
+		keyGenerator:        key.KeyGenerator,
+		keyVersionGenerator: key.KeyVersionGenerator,
+		versionGenerator:    key.VersionGenerator,
+		lockGenerator:       key.LockGenerator,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,11 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			defer client.Close()
 
-			cache, err := NewCache(client, Options{})
+			cache, err := NewCache(client, Options{
+				Tracer:    adapter.NewNoOpTracer(),
+				Logger:    adapter.NewNoOpLogger(),
+				Semaphore: adapter.NewSemaphore(10),
+			})
 			require.NoError(t, err)
 
 			tt.setup(cache)
@@ -106,7 +111,11 @@ func TestCache_RegisterCacheKey_Concurrent(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	cache, err := NewCache(client, Options{})
+	cache, err := NewCache(client, Options{
+		Tracer:    adapter.NewNoOpTracer(),
+		Logger:    adapter.NewNoOpLogger(),
+		Semaphore: adapter.NewSemaphore(10),
+	})
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -216,7 +225,11 @@ func TestCache_RegisterCustomKey(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			defer client.Close()
 
-			cache, err := NewCache(client, Options{})
+			cache, err := NewCache(client, Options{
+				Tracer:    adapter.NewNoOpTracer(),
+				Logger:    adapter.NewNoOpLogger(),
+				Semaphore: adapter.NewSemaphore(10),
+			})
 			require.NoError(t, err)
 
 			tt.setup(cache)
@@ -232,7 +245,11 @@ func TestCache_RegisterCustomKey_Concurrent(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	cache, err := NewCache(client, Options{})
+	cache, err := NewCache(client, Options{
+		Tracer:    adapter.NewNoOpTracer(),
+		Logger:    adapter.NewNoOpLogger(),
+		Semaphore: adapter.NewSemaphore(10),
+	})
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -325,7 +342,11 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			defer client.Close()
 
-			cache, err := NewCache(client, Options{})
+			cache, err := NewCache(client, Options{
+				Tracer:    adapter.NewNoOpTracer(),
+				Logger:    adapter.NewNoOpLogger(),
+				Semaphore: adapter.NewSemaphore(10),
+			})
 			require.NoError(t, err)
 
 			tt.setup(cache)
@@ -341,7 +362,11 @@ func TestCache_GetCacheKeyUsage_Concurrent(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	cache, err := NewCache(client, Options{})
+	cache, err := NewCache(client, Options{
+		Tracer:    adapter.NewNoOpTracer(),
+		Logger:    adapter.NewNoOpLogger(),
+		Semaphore: adapter.NewSemaphore(10),
+	})
 	require.NoError(t, err)
 
 	cache.registerCacheKey("getUser", "user")

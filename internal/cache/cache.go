@@ -54,29 +54,23 @@ func NewCache(redisClient *redis.Client, opts Options) (*Cache, error) {
 		return nil, errs.NewInvalidConfigError("redisClient", "cannot be nil")
 	}
 
-	// Use provided semaphore or create default
-	semaphore := opts.Semaphore
-	if semaphore == nil {
-		semaphore = adapter.NewSemaphore(opts.SemaphoreSize)
+	if opts.Tracer == nil {
+		return nil, errs.NewInvalidConfigError("tracer", "cannot be nil")
 	}
 
-	// Use provided tracer or default to no-op
-	tracer := opts.Tracer
-	if tracer == nil {
-		tracer = adapter.NewNoOpTracer()
+	if opts.Logger == nil {
+		return nil, errs.NewInvalidConfigError("logger", "cannot be nil")
 	}
 
-	// Use provided logger or default to no-op
-	logger := opts.Logger
-	if logger == nil {
-		logger = adapter.NewNoOpLogger()
+	if opts.Semaphore == nil {
+		return nil, errs.NewInvalidConfigError("semaphore", "cannot be nil")
 	}
 
 	c := &Cache{
 		RedisClient:         redisClient,
-		Tracer:              tracer,
-		Logger:              logger,
-		Semaphore:           semaphore,
+		Tracer:              opts.Tracer,
+		Logger:              opts.Logger,
+		Semaphore:           opts.Semaphore,
 		KeyPrefix:           opts.KeyPrefix,
 		KeyGenerator:        opts.KeyGenerator,
 		KeyVersionGenerator: opts.KeyVersionGenerator,

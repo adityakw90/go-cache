@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -214,9 +216,10 @@ func TestWithTracer(t *testing.T) {
 	}{
 		{
 			name:   "set tracer",
-			tracer: &NoOpTracer{},
+			tracer: adapter.NewNoOpTracer(),
 			checkFunc: func(t *testing.T, opts *options, originalTracer Tracer) {
-				assert.Equal(t, &NoOpTracer{}, opts.tracer)
+				assert.NotNil(t, opts.tracer)
+				assert.IsType(t, (*adapter.NoOpTracer)(nil), opts.tracer)
 			},
 		},
 		{
@@ -249,9 +252,10 @@ func TestWithLogger(t *testing.T) {
 	}{
 		{
 			name:   "set logger",
-			logger: &NoOpLogger{},
+			logger: adapter.NewNoOpLogger(),
 			checkFunc: func(t *testing.T, opts *options, originalLogger Logger) {
-				assert.Equal(t, &NoOpLogger{}, opts.logger)
+				assert.NotNil(t, opts.logger)
+				assert.IsType(t, (*adapter.NoOpLogger)(nil), opts.logger)
 			},
 		},
 		{
@@ -284,7 +288,7 @@ func TestWithSemaphore(t *testing.T) {
 	}{
 		{
 			name:      "set semaphore",
-			semaphore: NewDefaultSemaphore(5),
+			semaphore: adapter.NewSemaphore(5),
 			checkFunc: func(t *testing.T, opts *options, originalSemaphore Semaphore, setSemaphore Semaphore) {
 				assert.NotNil(t, opts.semaphore)
 				// Verify it's a different instance (not the original)
@@ -462,7 +466,7 @@ func TestDefaultKeyGenerator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := defaultKeyGenerator(tt.data)
+			result, err := key.KeyGenerator(tt.data)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -501,7 +505,7 @@ func TestDefaultKeyVersionGenerator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := defaultKeyVersionGenerator(tt.data)
+			result, err := key.KeyVersionGenerator(tt.data)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantResult, result)
 			if tt.checkFunc != nil {
@@ -534,7 +538,7 @@ func TestDefaultVersionGenerator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := defaultVersionGenerator(tt.data)
+			result, err := key.VersionGenerator(tt.data)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantResult, result)
 			if tt.checkFunc != nil {
@@ -567,7 +571,7 @@ func TestDefaultLockGenerator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := defaultLockGenerator(tt.data)
+			result, err := key.LockGenerator(tt.data)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantResult, result)
 			if tt.checkFunc != nil {

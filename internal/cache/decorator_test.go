@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/hash"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/serialize"
@@ -18,6 +19,9 @@ func TestCache_Cached_RegistersKey(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -46,6 +50,9 @@ func TestCache_Cached_UsesDefaultPrefix(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "default",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -74,6 +81,9 @@ func TestCache_Cached_RegistersCustomKey(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -115,6 +125,9 @@ func TestCache_Cached_WithVersioning(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		VersionExpire:       1 * time.Hour,
@@ -165,6 +178,9 @@ func TestCache_Cached_WithoutVersioning(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -204,6 +220,9 @@ func TestCache_Cached_FunctionError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -239,6 +258,9 @@ func TestCache_Cached_DynamicTTL(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -282,6 +304,9 @@ func TestCache_Cached_CustomKeyNamespace(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -331,6 +356,9 @@ func TestCache_Cached_KeyGenerationError(t *testing.T) {
 	}
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: invalidKeyGen,
@@ -370,6 +398,9 @@ func TestCache_Cached_VersionError(t *testing.T) {
 	}
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		VersionExpire:       1 * time.Hour,
@@ -405,6 +436,9 @@ func TestCache_Cached_CacheHit(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -458,6 +492,9 @@ func TestCache_Cached_DeserializeError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -506,6 +543,9 @@ func TestCache_Cached_CacheHitWithProperDeserialization(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -563,6 +603,9 @@ func TestCache_Cached_RedisGetError(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -616,6 +659,9 @@ func TestCache_Cached_TTLFunctionPath(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -695,6 +741,9 @@ func TestCache_Cached_TTLDefaultPath(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       7 * time.Minute, // Default TTL
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -760,6 +809,9 @@ func TestCache_Cached_VersioningWithCacheHit(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		VersionExpire:       1 * time.Hour,
@@ -826,6 +878,9 @@ func TestCache_Cached_CustomKeyCallable(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		KeyVersionGenerator: key.KeyVersionGenerator,
