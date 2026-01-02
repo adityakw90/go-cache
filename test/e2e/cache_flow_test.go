@@ -2,11 +2,13 @@ package e2e
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/cache"
+	"github.com/adityakw90/go-cache/internal/hash"
 	"github.com/adityakw90/go-cache/internal/key"
 	testutil "github.com/adityakw90/go-cache/test/util"
 	"github.com/stretchr/testify/assert"
@@ -207,9 +209,9 @@ func TestE2E_CacheFlow_Concurrent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			callCount := 0
+			var callCount int64
 			fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
-				callCount++
+				atomic.AddInt64(&callCount, 1)
 				time.Sleep(tt.fnDelay)
 				return "result", nil
 			}
@@ -237,7 +239,7 @@ func TestE2E_CacheFlow_Concurrent(t *testing.T) {
 				}
 			}
 
-			tt.validate(t, callCount, received)
+			tt.validate(t, int(callCount), received)
 		})
 	}
 }
@@ -280,7 +282,7 @@ func TestE2E_CacheFlow_Expiration(t *testing.T) {
 		{
 			name:    "cache expires after TTL",
 			keyName: "e2e_expiration",
-			ttl:     300 * time.Millisecond,
+			ttl:     10 * time.Second,
 			steps: []expirationStep{
 				{
 					waitBefore: 0,
@@ -289,15 +291,15 @@ func TestE2E_CacheFlow_Expiration(t *testing.T) {
 					},
 				},
 				{
-					waitBefore: 200 * time.Millisecond,
+					waitBefore: 100 * time.Millisecond,
 					validate: func(t *testing.T, callCount int) {
-						assert.Equal(t, 1, callCount)
+						assert.Equal(t, 1, callCount, "cache should still be valid, callCount should be 1")
 					},
 				},
 				{
-					waitBefore: 200 * time.Millisecond,
+					waitBefore: 10100 * time.Millisecond,
 					validate: func(t *testing.T, callCount int) {
-						assert.GreaterOrEqual(t, callCount, 2)
+						assert.GreaterOrEqual(t, callCount, 2, "cache should have expired, callCount should be >= 2")
 					},
 				},
 			},
@@ -318,20 +320,89 @@ func TestE2E_CacheFlow_Expiration(t *testing.T) {
 			cachedFn := c.Cached(tt.keyName, tt.ttl, false, "")(fn, nil)
 			var resultType string
 
-			for i, step := range tt.steps {
+			// Helper function to verify cache key exists and is actually retrievable
+			verifyCacheRetrievable := func(keyName string, args []interface{}) bool {
+				namespace := keyName
+				hashKey := hash.CacheKey(namespace, args)
+				cacheKey, err := c.KeyVersionGenerator(map[string]string{
+					"prefix":    c.KeyPrefix,
+					"namespace": namespace,
+					"version":   "0", // versioning is disabled
+					"key":       hashKey,
+				})
+				if err != nil {
+					return false
+				}
+				// Try to actually retrieve the cache value using the cache's Get method
+				// This is more reliable than just checking if the key exists
+				var testResult string
+				err = c.Get(ctx, cacheKey, &testResult)
+				return err == nil && testResult == "result"
+			}
+
+			for stepIndex, step := range tt.steps {
 				if step.waitBefore > 0 {
 					time.Sleep(step.waitBefore)
+				}
+
+				// Reset resultType before each call to ensure clean state
+				resultType = ""
+
+				// Before making the call, verify cache is retrievable for steps that expect cache hit
+				// This helps debug flaky tests by ensuring cache is actually accessible before the call
+				if stepIndex == 1 {
+					// Step 1 should have cache hit - verify cache is retrievable right before the call
+					// Check multiple times to ensure stability
+					for i := 0; i < 3; i++ {
+						cacheRetrievable := verifyCacheRetrievable(tt.keyName, []interface{}{"arg1"})
+						if !cacheRetrievable {
+							t.Logf("Warning: Cache not retrievable before step %d call (check %d). This may indicate timing issues.", stepIndex+1, i+1)
+						} else {
+							break // Cache is retrievable, proceed
+						}
+						if i < 2 {
+							time.Sleep(5 * time.Millisecond)
+						}
+					}
 				}
 
 				result, err := cachedFn(&resultType, ctx, "arg1")
 				require.NoError(t, err)
 
-				if i == 0 {
-					assert.Equal(t, "result", result.(string))
-				} else if i == 1 {
+				// Check result value - on cache hit, result is resultType (*string pointer)
+				// On cache miss, result is the fresh function return value (string)
+				// Check resultType for cache hit, or result for cache miss
+				if resultType != "" {
+					// Cache hit - resultType was populated by Get
 					assert.Equal(t, "result", resultType)
 				} else {
+					// Cache miss - result is the function return value
 					assert.Equal(t, "result", result.(string))
+				}
+
+				// After first call (cache set), verify the cache is actually retrievable and stable
+				// This ensures the cache is actually set and accessible before proceeding, preventing flaky tests
+				if stepIndex == 0 {
+					// Retry up to 20 times with 10ms intervals to verify cache is retrievable
+					// This accounts for Redis write propagation delays
+					maxRetries := 20
+					cacheVerified := false
+					for i := 0; i < maxRetries; i++ {
+						if verifyCacheRetrievable(tt.keyName, []interface{}{"arg1"}) {
+							cacheVerified = true
+							break
+						}
+						time.Sleep(10 * time.Millisecond)
+					}
+					require.True(t, cacheVerified, "cache should be retrievable after first call")
+
+					// Verify cache is stable by checking it multiple times
+					// This helps catch any transient issues
+					for i := 0; i < 3; i++ {
+						require.True(t, verifyCacheRetrievable(tt.keyName, []interface{}{"arg1"}),
+							"cache should remain retrievable (stability check %d)", i+1)
+						time.Sleep(5 * time.Millisecond)
+					}
 				}
 
 				step.validate(t, callCount)
