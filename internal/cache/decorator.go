@@ -10,6 +10,7 @@ import (
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/lock"
 	"github.com/adityakw90/go-cache/internal/serialize"
+	moduleVersion "github.com/adityakw90/go-cache/internal/version"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -63,7 +64,10 @@ func (c *Cache) Cached(
 			version := 0
 			if versioning {
 				var err error
-				version, err = c.GetCacheVersion(ctx, namespace, prefix)
+				version, err = moduleVersion.GetCacheVersion(
+					ctx, c.RedisClient, c.Tracer, c.Logger, c.Semaphore,
+					c.VersionGenerator, c.VersionExpire, namespace, prefix,
+				)
 				if err != nil {
 					logger.Info("failed to get cache version", map[string]interface{}{
 						"error": err.Error(),
