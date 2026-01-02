@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ func TestCache_Get(t *testing.T) {
 		resultType    interface{}
 		expectedValue interface{}
 		expectError   bool
+		expectedErr   error
 	}{
 		{
 			name: "cache hit with string",
@@ -34,6 +36,7 @@ func TestCache_Get(t *testing.T) {
 			resultType:    new(string),
 			expectedValue: "test-value",
 			expectError:   false,
+			expectedErr:   nil,
 		},
 		{
 			name: "cache miss",
@@ -44,6 +47,31 @@ func TestCache_Get(t *testing.T) {
 			},
 			resultType:  new(string),
 			expectError: true,
+			expectedErr: ErrGetCacheMiss,
+		},
+		{
+			name: "redis error",
+			key:  "test:key:3",
+			setupMock: func(mock redismock.ClientMock, key string) string {
+				mock.ExpectGet(key).SetErr(errors.New("redis connection error"))
+				return ""
+			},
+			resultType:  new(string),
+			expectError: true,
+			expectedErr: ErrGetCacheFailed,
+		},
+		{
+			name: "deserialization failure",
+			key:  "test:key:4",
+			setupMock: func(mock redismock.ClientMock, key string) string {
+				// Return invalid/corrupted data that cannot be deserialized
+				invalidData := []byte{0xFF, 0xFF, 0xFF, 0xFF}
+				mock.ExpectGet(key).SetVal(string(invalidData))
+				return ""
+			},
+			resultType:  new(string),
+			expectError: true,
+			expectedErr: ErrGetCacheDeserializeFailed,
 		},
 	}
 
@@ -71,6 +99,9 @@ func TestCache_Get(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err)
+				if tt.expectedErr != nil {
+					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				}
 			} else {
 				require.NoError(t, err)
 				if strPtr, ok := tt.resultType.(*string); ok {
@@ -89,21 +120,53 @@ func TestCache_Set(t *testing.T) {
 		key         string
 		value       interface{}
 		ttl         time.Duration
+		setupMock   func(mock redismock.ClientMock, key string, ttl time.Duration)
 		expectError bool
+		expectedErr error
 	}{
 		{
-			name:        "set string value",
-			key:         "test:key:1",
-			value:       "test-value",
-			ttl:         5 * time.Minute,
+			name:  "set string value",
+			key:   "test:key:1",
+			value: "test-value",
+			ttl:   5 * time.Minute,
+			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
+				mock.Regexp().ExpectSet(key, `.*`, ttl).SetVal("OK")
+			},
 			expectError: false,
+			expectedErr: nil,
 		},
 		{
-			name:        "set map value",
-			key:         "test:key:2",
-			value:       map[string]string{"key": "value"},
-			ttl:         10 * time.Minute,
+			name:  "set map value",
+			key:   "test:key:2",
+			value: map[string]string{"key": "value"},
+			ttl:   10 * time.Minute,
+			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
+				mock.Regexp().ExpectSet(key, `.*`, ttl).SetVal("OK")
+			},
 			expectError: false,
+			expectedErr: nil,
+		},
+		{
+			name:  "redis set error",
+			key:   "test:key:3",
+			value: "test-value",
+			ttl:   5 * time.Minute,
+			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
+				mock.Regexp().ExpectSet(key, `.*`, ttl).SetErr(errors.New("redis set error"))
+			},
+			expectError: true,
+			expectedErr: ErrSetCacheFailed,
+		},
+		{
+			name:  "serialization failure",
+			key:   "test:key:4",
+			value: nil,
+			ttl:   5 * time.Minute,
+			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
+				// No mock expectation needed as serialization fails before Redis call
+			},
+			expectError: true,
+			expectedErr: ErrSetCacheSerializeFailed,
 		},
 	}
 
@@ -124,13 +187,16 @@ func TestCache_Set(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			mock.Regexp().ExpectSet(tt.key, `.*`, tt.ttl).SetVal("OK")
+			tt.setupMock(mock, tt.key, tt.ttl)
 
 			ctx := context.Background()
 			err = cache.Set(ctx, tt.key, tt.value, tt.ttl)
 
 			if tt.expectError {
 				assert.Error(t, err)
+				if tt.expectedErr != nil {
+					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				}
 			} else {
 				require.NoError(t, err)
 			}
