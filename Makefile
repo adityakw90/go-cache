@@ -1,4 +1,4 @@
-.PHONY: test test-cover test-clean help verbose
+.PHONY: test test-cover test-clean bench help verbose
 
 # Default target
 .DEFAULT_GOAL := help
@@ -33,11 +33,23 @@ test-clean:
 	@rm -f coverage.txt
 	@echo "Clean complete"
 
+# Run benchmarks (usage: make bench or make bench verbose)
+bench:
+	@if echo "$(MAKECMDGOALS)" | grep -q "verbose"; then \
+		echo "Running benchmarks with verbose output..."; \
+		go test -v -bench=. -benchmem ./...; \
+	else \
+		echo "Running benchmarks..."; \
+		go test -bench=. -benchmem ./...; \
+	fi
+
+
 # Help target
 help:
 	@echo "Available targets:"
 	@echo "  test [verbose]       - Run all tests (add verbose for verbose output)"
 	@echo "  test-cover [verbose] - Run tests with coverage (add verbose for verbose output)"
 	@echo "  test-clean           - Clean test cache and coverage files"
+	@echo "  bench [verbose]      - Run all benchmarks (add verbose for verbose output)"
 	@echo "  help                 - Show this help message"
 
