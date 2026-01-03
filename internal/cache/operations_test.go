@@ -14,15 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCache_Get(t *testing.T) {
+func TestCache_Operations_Get(t *testing.T) {
 	tests := []struct {
-		name          string
-		key           string
-		setupMock     func(mock redismock.ClientMock, key string) string
-		resultType    interface{}
-		expectedValue interface{}
-		expectError   bool
-		expectedErr   error
+		name           string
+		key            string
+		setupMock      func(mock redismock.ClientMock, key string) string
+		resultType     interface{}
+		expectedValue  interface{}
+		wantErr        bool
+		wantErrIs      error
+		wantErrMessage string
 	}{
 		{
 			name: "cache hit with string",
@@ -33,10 +34,11 @@ func TestCache_Get(t *testing.T) {
 				mock.ExpectGet(key).SetVal(string(serializedData))
 				return "test-value"
 			},
-			resultType:    new(string),
-			expectedValue: "test-value",
-			expectError:   false,
-			expectedErr:   nil,
+			resultType:     new(string),
+			expectedValue:  "test-value",
+			wantErr:        false,
+			wantErrIs:      nil,
+			wantErrMessage: "",
 		},
 		{
 			name: "cache miss",
@@ -45,9 +47,10 @@ func TestCache_Get(t *testing.T) {
 				mock.ExpectGet(key).RedisNil()
 				return ""
 			},
-			resultType:  new(string),
-			expectError: true,
-			expectedErr: ErrGetCacheMiss,
+			resultType:     new(string),
+			wantErr:        true,
+			wantErrIs:      ErrGetCacheMiss,
+			wantErrMessage: "",
 		},
 		{
 			name: "redis error",
@@ -56,9 +59,10 @@ func TestCache_Get(t *testing.T) {
 				mock.ExpectGet(key).SetErr(errors.New("redis connection error"))
 				return ""
 			},
-			resultType:  new(string),
-			expectError: true,
-			expectedErr: ErrGetCacheFailed,
+			resultType:     new(string),
+			wantErr:        true,
+			wantErrIs:      nil,
+			wantErrMessage: "failed to get cache: redis connection error",
 		},
 		{
 			name: "deserialization failure",
@@ -69,9 +73,10 @@ func TestCache_Get(t *testing.T) {
 				mock.ExpectGet(key).SetVal(string(invalidData))
 				return ""
 			},
-			resultType:  new(string),
-			expectError: true,
-			expectedErr: ErrGetCacheDeserializeFailed,
+			resultType:     new(string),
+			wantErr:        true,
+			wantErrIs:      nil,
+			wantErrMessage: "failed to deserialize cache data: failed to deserialize data: unexpected EOF",
 		},
 	}
 
@@ -97,10 +102,13 @@ func TestCache_Get(t *testing.T) {
 			ctx := context.Background()
 			err = cache.Get(ctx, tt.key, tt.resultType)
 
-			if tt.expectError {
+			if tt.wantErr {
 				assert.Error(t, err)
-				if tt.expectedErr != nil {
-					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				if tt.wantErrIs != nil {
+					assert.True(t, errors.Is(err, tt.wantErrIs), "expected error %v, got %v", tt.wantErrIs, err)
+				}
+				if tt.wantErrMessage != "" {
+					assert.Equal(t, tt.wantErrMessage, err.Error())
 				}
 			} else {
 				require.NoError(t, err)
@@ -114,15 +122,16 @@ func TestCache_Get(t *testing.T) {
 	}
 }
 
-func TestCache_Set(t *testing.T) {
+func TestCache_Operations_Set(t *testing.T) {
 	tests := []struct {
-		name        string
-		key         string
-		value       interface{}
-		ttl         time.Duration
-		setupMock   func(mock redismock.ClientMock, key string, ttl time.Duration)
-		expectError bool
-		expectedErr error
+		name           string
+		key            string
+		value          interface{}
+		ttl            time.Duration
+		setupMock      func(mock redismock.ClientMock, key string, ttl time.Duration)
+		wantErr        bool
+		wantErrIs      error
+		wantErrMessage string
 	}{
 		{
 			name:  "set string value",
@@ -132,8 +141,9 @@ func TestCache_Set(t *testing.T) {
 			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
 				mock.Regexp().ExpectSet(key, `.*`, ttl).SetVal("OK")
 			},
-			expectError: false,
-			expectedErr: nil,
+			wantErr:        false,
+			wantErrIs:      nil,
+			wantErrMessage: "",
 		},
 		{
 			name:  "set map value",
@@ -143,8 +153,9 @@ func TestCache_Set(t *testing.T) {
 			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
 				mock.Regexp().ExpectSet(key, `.*`, ttl).SetVal("OK")
 			},
-			expectError: false,
-			expectedErr: nil,
+			wantErr:        false,
+			wantErrIs:      nil,
+			wantErrMessage: "",
 		},
 		{
 			name:  "redis set error",
@@ -154,8 +165,9 @@ func TestCache_Set(t *testing.T) {
 			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
 				mock.Regexp().ExpectSet(key, `.*`, ttl).SetErr(errors.New("redis set error"))
 			},
-			expectError: true,
-			expectedErr: ErrSetCacheFailed,
+			wantErr:        true,
+			wantErrIs:      nil,
+			wantErrMessage: "failed to set cache data: redis set error",
 		},
 		{
 			name:  "serialization failure",
@@ -165,8 +177,9 @@ func TestCache_Set(t *testing.T) {
 			setupMock: func(mock redismock.ClientMock, key string, ttl time.Duration) {
 				// No mock expectation needed as serialization fails before Redis call
 			},
-			expectError: true,
-			expectedErr: ErrSetCacheSerializeFailed,
+			wantErr:        true,
+			wantErrIs:      nil,
+			wantErrMessage: "failed to serialize value: cannot serialize nil value",
 		},
 	}
 
@@ -192,10 +205,13 @@ func TestCache_Set(t *testing.T) {
 			ctx := context.Background()
 			err = cache.Set(ctx, tt.key, tt.value, tt.ttl)
 
-			if tt.expectError {
+			if tt.wantErr {
 				assert.Error(t, err)
-				if tt.expectedErr != nil {
-					assert.True(t, errors.Is(err, tt.expectedErr), "expected error %v, got %v", tt.expectedErr, err)
+				if tt.wantErrIs != nil {
+					assert.True(t, errors.Is(err, tt.wantErrIs), "expected error %v, got %v", tt.wantErrIs, err)
+				}
+				if tt.wantErrMessage != "" {
+					assert.Equal(t, tt.wantErrMessage, err.Error())
 				}
 			} else {
 				require.NoError(t, err)
@@ -206,7 +222,7 @@ func TestCache_Set(t *testing.T) {
 	}
 }
 
-func TestCache_GetSet_Integration(t *testing.T) {
+func TestCache_Operations_GetSet_Integration(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 

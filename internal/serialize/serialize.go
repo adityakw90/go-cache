@@ -23,19 +23,19 @@ func Serialize(value interface{}) ([]byte, error) {
 }
 
 // Deserialize converts []byte to a value using Gob decoding.
-func Deserialize(data []byte, result interface{}) error {
+func Deserialize(data []byte, resultPtr interface{}) error {
 	if len(data) == 0 {
 		return ErrDeserializeEmptyData
 	}
 
-	if result == nil {
+	if resultPtr == nil {
 		return ErrDeserializeResultNil
 	}
 
 	buffer := bytes.NewBuffer(data)
 	dec := gob.NewDecoder(buffer)
 
-	if err := dec.Decode(result); err != nil {
+	if err := dec.Decode(resultPtr); err != nil {
 		return fmt.Errorf("failed to deserialize data: %w", err)
 	}
 

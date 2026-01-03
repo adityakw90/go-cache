@@ -33,6 +33,7 @@ func (c *Cache) Cached(
 		fn func(ctx context.Context, args ...interface{}) (interface{}, error),
 		customKeyFunc key.CustomKeyFunction,
 	) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
+		// resultType is a pointer to the result of the function
 		if customKeyFunc != nil {
 			// Register custom key function
 			c.registerCustomKey(keyName, customKeyFunc)
@@ -186,7 +187,6 @@ func (c *Cache) Cached(
 						logger.Info("cache hit after lock acquisition", map[string]interface{}{
 							"key": key,
 						})
-
 						return resultType, nil
 					}
 

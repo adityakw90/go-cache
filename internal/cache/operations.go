@@ -33,7 +33,7 @@ func (c *Cache) Get(ctx context.Context, key string, resultType interface{}) err
 			"key":   key,
 			"error": err.Error(),
 		})
-		return ErrGetCacheFailed
+		return fmt.Errorf("failed to get cache: %w", err)
 	}
 
 	logger.Info("cache hit", map[string]interface{}{
@@ -47,7 +47,7 @@ func (c *Cache) Get(ctx context.Context, key string, resultType interface{}) err
 			"key":   key,
 			"error": err.Error(),
 		})
-		return ErrGetCacheDeserializeFailed
+		return fmt.Errorf("failed to deserialize cache data: %w", err)
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (c *Cache) Set(ctx context.Context, key string, value interface{}, ttl time
 			"key":   key,
 			"error": err.Error(),
 		})
-		return ErrSetCacheSerializeFailed
+		return fmt.Errorf("failed to serialize value: %w", err)
 	}
 
 	err = c.RedisClient.Set(ctx, key, serializedData, ttl).Err()
@@ -81,7 +81,7 @@ func (c *Cache) Set(ctx context.Context, key string, value interface{}, ttl time
 			"key":   key,
 			"error": err.Error(),
 		})
-		return ErrSetCacheFailed
+		return fmt.Errorf("failed to set cache data: %w", err)
 	}
 
 	logger.Debug("cache set successfully", map[string]interface{}{
