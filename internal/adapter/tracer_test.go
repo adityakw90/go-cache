@@ -237,32 +237,19 @@ func TestAdapter_NoOpSpan_AddEvent(t *testing.T) {
 
 func TestAdapter_NoOpSpan_SetAttributes(t *testing.T) {
 	tests := []struct {
-		name      string
-		attrs     []SpanAttribute
-		checkFunc func(t *testing.T, span *NoOpSpan)
+		name  string
+		attrs []SpanAttribute
 	}{
 		{
 			name: "set attributes without attrs",
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.SetAttributes()
-			},
 		},
 		{
 			name:  "set attributes with nil",
 			attrs: nil,
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.SetAttributes(nil)
-			},
 		},
 		{
 			name:  "set attributes with empty slice",
 			attrs: []SpanAttribute{},
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.SetAttributes()
-			},
 		},
 		{
 			name: "set attributes with multiple attrs",
@@ -270,19 +257,15 @@ func TestAdapter_NoOpSpan_SetAttributes(t *testing.T) {
 				&NoOpSpanAttribute{},
 				&NoOpSpanAttribute{},
 			},
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.SetAttributes(&NoOpSpanAttribute{}, &NoOpSpanAttribute{})
-			},
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt // shadow tt to capture it correctly
 		t.Run(tt.name, func(t *testing.T) {
 			span := &NoOpSpan{}
-			if tt.checkFunc != nil {
-				tt.checkFunc(t, span)
-			}
+			// Should not panic
+			span.SetAttributes(tt.attrs...)
 		})
 	}
 }
