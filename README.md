@@ -55,6 +55,18 @@ func main() {
         return &User{ID: userID, Name: "John"}, nil
     }
     
+    // Create custom key function
+    customKeyFunc, err := cache.NewCustomKeyFunction(
+        "getUser",
+        func(args ...interface{}) string {
+            return "user:" + args[0].(string)
+        },
+        []string{"userID"},
+    )
+    if err != nil {
+        panic(err)
+    }
+    
     // Create cached function
     cachedGetUser := c.Cached(
         "getUser",
@@ -63,13 +75,7 @@ func main() {
         "user",
     )(
         getUserFromDB,
-        &cache.CustomKeyFunction{
-            Name: "getUser",
-            Callable: func(args ...interface{}) string {
-                return "user:" + args[0].(string)
-            },
-            Params: []string{"userID"},
-        },
+        customKeyFunc,
     )
     
     // Use the cached function
