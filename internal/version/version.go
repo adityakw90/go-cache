@@ -83,6 +83,7 @@ func GetCacheVersion(
 }
 
 // IncrementCacheVersion increments the version counter in a Redis pipeline.
+// TODO: for future release, we should return the command instead of the result
 func IncrementCacheVersion(
 	ctx context.Context,
 	redisClient *redis.Client,
@@ -120,10 +121,10 @@ func IncrementCacheVersion(
 		"key": key,
 	})
 
-	// Increment the version in Redis pipeline
-	versionInt, err := session.Incr(ctx, key).Result()
+	// Increment the version in Redis
+	versionInt, err := redisClient.Incr(ctx, key).Result()
 	if err != nil {
-		return 0, fmt.Errorf("failed to increment version: %w", err)
+		return 0, fmt.Errorf("failed to initialize version: %w", err)
 	}
 
 	// Asynchronously check TTL
