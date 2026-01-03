@@ -64,12 +64,15 @@ func TestCache_CleanCache(t *testing.T) {
 					"prefix":    "testPrefix",
 					"namespace": keyName,
 				})
-				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
+				// IncrementCacheVersion is called first (direct Redis call)
 				mock.ExpectIncr(versionKey).SetVal(1)
-				mock.ExpectTTL(versionKey).SetVal(-1)
-				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
+				// Then AcquireMultipleLock is called
+				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
 				mock.Regexp().ExpectEvalSha(`.*`, []string{lockKey}, []interface{}{`.*`}).SetErr(errors.New("NOSCRIPT "))
 				mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
+				// Async TTL operations from IncrementCacheVersion (may execute after lock operations)
+				mock.ExpectTTL(versionKey).SetVal(-1)
+				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
 			},
 			validateResult: func(t *testing.T, err error, _ *[]string, mock redismock.ClientMock) {
 				require.NoError(t, err)
@@ -112,12 +115,15 @@ func TestCache_CleanCache(t *testing.T) {
 					"prefix":    "user",
 					"namespace": namespace,
 				})
-				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
+				// IncrementCacheVersion is called first (direct Redis call)
 				mock.ExpectIncr(versionKey).SetVal(1)
-				mock.ExpectTTL(versionKey).SetVal(-1)
-				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
+				// Then AcquireMultipleLock is called
+				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
 				mock.Regexp().ExpectEvalSha(`.*`, []string{lockKey}, []interface{}{`.*`}).SetErr(errors.New("NOSCRIPT "))
 				mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
+				// Async TTL operations from IncrementCacheVersion (may execute after lock operations)
+				mock.ExpectTTL(versionKey).SetVal(-1)
+				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
 			},
 			validateResult: func(t *testing.T, err error, _ *[]string, mock redismock.ClientMock) {
 				require.NoError(t, err)
@@ -176,12 +182,15 @@ func TestCache_CleanCache(t *testing.T) {
 					"prefix":    "testPrefix",
 					"namespace": keyName,
 				})
-				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
+				// IncrementCacheVersion is called first (direct Redis call)
 				mock.ExpectIncr(versionKey).SetVal(1)
-				mock.ExpectTTL(versionKey).SetVal(-1)
-				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
+				// Then AcquireMultipleLock is called
+				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
 				mock.Regexp().ExpectEvalSha(`.*`, []string{lockKey}, []interface{}{`.*`}).SetErr(errors.New("NOSCRIPT "))
 				mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
+				// Async TTL operations from IncrementCacheVersion (may execute after lock operations)
+				mock.ExpectTTL(versionKey).SetVal(-1)
+				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
 			},
 			validateResult: func(t *testing.T, err error, _ *[]string, mock redismock.ClientMock) {
 				require.NoError(t, err)
@@ -213,12 +222,15 @@ func TestCache_CleanCache(t *testing.T) {
 					"prefix":    "testPrefix",
 					"namespace": keyName,
 				})
-				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
+				// IncrementCacheVersion is called first (direct Redis call)
 				mock.ExpectIncr(versionKey).SetVal(1)
-				mock.ExpectTTL(versionKey).SetVal(-1)
-				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
+				// Then AcquireMultipleLock is called
+				mock.Regexp().ExpectSetNX(lockKey, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, 5*time.Second).SetVal(true)
 				mock.Regexp().ExpectEvalSha(`.*`, []string{lockKey}, []interface{}{`.*`}).SetErr(errors.New("NOSCRIPT "))
 				mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
+				// Async TTL operations from IncrementCacheVersion (may execute after lock operations)
+				mock.ExpectTTL(versionKey).SetVal(-1)
+				mock.ExpectExpire(versionKey, 1*time.Hour).SetVal(true)
 			},
 			validateResult: func(t *testing.T, err error, lockKeys *[]string, mock redismock.ClientMock) {
 				require.NoError(t, err)

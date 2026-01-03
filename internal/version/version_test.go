@@ -24,13 +24,14 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 	prefix := "test-prefix"
 
 	tests := []struct {
-		name        string
-		setupMock   func(*testing.T, redismock.ClientMock, string)
-		namespace   string
-		prefix      string
-		wantErr     bool
-		errContains string
-		checkFunc   func(*testing.T, int, redismock.ClientMock)
+		name            string
+		setupMock       func(*testing.T, redismock.ClientMock, string)
+		namespace       string
+		prefix          string
+		customGenerator key.KeyGeneratorFunc // Optional: if nil, uses default versionGenerator
+		wantErr         bool
+		errContains     string
+		checkFunc       func(*testing.T, int, redismock.ClientMock)
 	}{
 		{
 			name: "new version initialized to 1",
@@ -82,13 +83,15 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 		{
 			name: "key generator error",
 			setupMock: func(t *testing.T, mock redismock.ClientMock, key string) {
-				// When prefix is empty, it might still generate a key with empty prefix
-				// So we don't set up expectations - let it fail naturally
+				// No Redis interactions expected - error occurs before any Redis calls
 			},
-			namespace:   namespace,
-			prefix:      "",
+			namespace: namespace,
+			prefix:    prefix,
+			customGenerator: func(data map[string]string) (string, error) {
+				return "", errors.New("key generation failed")
+			},
 			wantErr:     true,
-			errContains: "failed to get version", // Actually fails during Get() because no expectation
+			errContains: "failed to generate version key",
 		},
 		{
 			name: "redis Get error",
@@ -121,18 +124,28 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			defer client.Close()
 
-			// Generate key for mock setup
-			data := map[string]string{
-				"prefix":    tt.prefix,
-				"namespace": tt.namespace,
+			// Use custom generator if provided, otherwise use default
+			testGenerator := versionGenerator
+			if tt.customGenerator != nil {
+				testGenerator = tt.customGenerator
 			}
-			key, err := versionGenerator(data)
-			if err != nil && tt.wantErr {
-				// Expected error from key generator
-				assert.Contains(t, err.Error(), tt.errContains)
-				return
+
+			// Generate key for mock setup (only if using default generator)
+			var key string
+			if tt.customGenerator == nil {
+				data := map[string]string{
+					"prefix":    tt.prefix,
+					"namespace": tt.namespace,
+				}
+				var err error
+				key, err = versionGenerator(data)
+				if err != nil && tt.wantErr {
+					// Expected error from key generator
+					assert.Contains(t, err.Error(), tt.errContains)
+					return
+				}
+				require.NoError(t, err)
 			}
-			require.NoError(t, err)
 
 			tt.setupMock(t, mock, key)
 			ctx := context.Background()
@@ -143,7 +156,7 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 				tracer,
 				logger,
 				semaphore,
-				versionGenerator,
+				testGenerator,
 				versionExpire,
 				tt.namespace,
 				tt.prefix,

@@ -25,13 +25,14 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 	prefix := "test-prefix"
 
 	tests := []struct {
-		name        string
-		setupMock   func(*testing.T, redismock.ClientMock, string)
-		prefix      string
-		namespace   string
-		wantErr     bool
-		errContains string
-		checkFunc   func(*testing.T, redismock.ClientMock)
+		name            string
+		setupMock       func(*testing.T, redismock.ClientMock, string)
+		prefix          string
+		namespace       string
+		customGenerator key.KeyGeneratorFunc // Optional: if nil, uses default versionGenerator
+		wantErr         bool
+		errContains     string
+		checkFunc       func(*testing.T, redismock.ClientMock)
 	}{
 		{
 			name: "invalidate new version",
@@ -87,28 +88,27 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 		{
 			name: "key generator error",
 			setupMock: func(t *testing.T, mock redismock.ClientMock, key string) {
-				// When prefix is empty, it gets replaced with keyPrefix in InvalidateVersion
-				// So the key will be generated successfully, but we want to test a real error
-				// For this test, we'll use a nil versionGenerator to cause an error
-				// Actually, we can't easily test key generator error with empty strings
-				// because empty strings are valid. Let's test with a different approach.
-				// We'll skip setting up mock since the error happens before Redis calls
+				// No Redis interactions expected - error occurs before any Redis calls
 			},
-			prefix:      "",
-			namespace:   "",
+			prefix:    prefix,
+			namespace: namespace,
+			customGenerator: func(data map[string]string) (string, error) {
+				return "", errors.New("key generation failed")
+			},
 			wantErr:     true,
-			errContains: "failed to execute pipeline", // Actually Exec fails because no expectation set
+			errContains: "failed to increment version: failed to generate version key",
 		},
 		{
-			name: "pipeline exec error",
+			name: "redis Incr error",
 			setupMock: func(t *testing.T, mock redismock.ClientMock, key string) {
-				// Pipeline Incr command fails, which will cause Exec to return error
+				// IncrementCacheVersion uses direct Redis calls, not pipeline
+				// So the error happens in IncrementCacheVersion, not during Exec()
 				mock.ExpectIncr(key).SetErr(errors.New("redis connection error"))
 			},
 			prefix:      prefix,
-			namespace:   namespace + "-exec-error",
+			namespace:   namespace + "-incr-error",
 			wantErr:     true,
-			errContains: "failed to execute pipeline",
+			errContains: "failed to increment version: failed to initialize version",
 		},
 	}
 
@@ -117,9 +117,15 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			defer client.Close()
 
-			// Generate key for mock setup (only if we expect it to succeed)
+			// Use custom generator if provided, otherwise use default
+			testGenerator := versionGenerator
+			if tt.customGenerator != nil {
+				testGenerator = tt.customGenerator
+			}
+
+			// Generate key for mock setup (only if using default generator)
 			var key string
-			if tt.name != "key generator error" {
+			if tt.customGenerator == nil {
 				testPrefix := tt.prefix
 				if testPrefix == "" {
 					testPrefix = keyPrefix
@@ -146,7 +152,7 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 				tracer,
 				logger,
 				semaphore,
-				versionGenerator,
+				testGenerator,
 				versionExpire,
 				keyPrefix,
 				tt.namespace,
@@ -352,7 +358,9 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 	key, err := versionGenerator(data)
 	require.NoError(t, err)
 
-	// Setup mock: Incr command fails, which will cause Exec to fail
+	// Setup mock: Incr command fails
+	// Note: IncrementCacheVersion uses direct Redis calls, not pipeline
+	// So the error happens in IncrementCacheVersion, not during Exec()
 	mock.ExpectIncr(key).SetErr(errors.New("redis connection error"))
 
 	getSession := func() redis.Pipeliner {
@@ -373,9 +381,8 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 		getSession,
 	)
 
-	// Should get error during pipeline execution
-	// When Incr fails in pipeline, Exec() returns the error
+	// Should get error during IncrementCacheVersion (before Exec is called)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to execute pipeline")
+	assert.Contains(t, err.Error(), "failed to increment version: failed to initialize version")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
