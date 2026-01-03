@@ -69,7 +69,7 @@ func TestCache_Cached_WithoutVersioning(t *testing.T) {
 
 				time.Sleep(200 * time.Millisecond)
 
-				result, err = cachedFn(&resultType, ctx, "arg1", "arg2")
+				_, err = cachedFn(&resultType, ctx, "arg1", "arg2")
 				require.NoError(t, err)
 				assert.Equal(t, 1, *callCount)
 				assert.Equal(t, "test", resultType["result"])
@@ -172,7 +172,7 @@ func TestCache_Cached_WithVersioning(t *testing.T) {
 
 				time.Sleep(200 * time.Millisecond)
 
-				result, err = cachedFn(&resultType, ctx, "arg1")
+				_, err = cachedFn(&resultType, ctx, "arg1")
 				require.NoError(t, err)
 				assert.Equal(t, 1, *callCount)
 				assert.Equal(t, "v1", resultType["result"])
@@ -237,7 +237,7 @@ func TestCache_CleanCache(t *testing.T) {
 
 				time.Sleep(200 * time.Millisecond)
 
-				result, err = cachedFn(&resultType, ctx, "arg1")
+				_, err = cachedFn(&resultType, ctx, "arg1")
 				require.NoError(t, err)
 				assert.Equal(t, 1, *callCount)
 				assert.Equal(t, "result", resultType)

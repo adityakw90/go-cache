@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -52,7 +53,10 @@ func TestLock_AcquireRelease_Single(t *testing.T) {
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
+		var wg sync.WaitGroup
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			time.Sleep(200 * time.Millisecond)
 			lock.ReleaseLock(ctx, client, lockData1)
 		}()
@@ -64,6 +68,8 @@ func TestLock_AcquireRelease_Single(t *testing.T) {
 
 		lock.ReleaseLock(ctx, client, lockData2)
 		assert.True(t, lockData2.Released)
+
+		wg.Wait()
 	})
 
 	t.Run("release unlocked lock", func(t *testing.T) {
@@ -147,7 +153,10 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
+		var wg sync.WaitGroup
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			time.Sleep(200 * time.Millisecond)
 			lock.ReleaseLock(ctx, client, lockData1)
 		}()
@@ -162,6 +171,8 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 
 		err = lock.ReleaseMultipleLock(ctx, client, locks)
 		require.NoError(t, err)
+
+		wg.Wait()
 	})
 
 	t.Run("acquire multiple locks timeout", func(t *testing.T) {
@@ -202,9 +213,12 @@ func TestLock_Concurrent(t *testing.T) {
 	t.Run("concurrent lock acquisition", func(t *testing.T) {
 		const numGoroutines = 10
 		acquired := make(chan *lock.LockData, numGoroutines)
+		var wg sync.WaitGroup
 
 		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
 			go func(id int) {
+				defer wg.Done()
 				lockKey := key + "_" + fmt.Sprintf("%d", id)
 				lockData := lock.AcquireLock(ctx, client, lockKey, timeout, interval, true, 2*time.Second)
 				if lockData.Acquired {
@@ -222,6 +236,9 @@ func TestLock_Concurrent(t *testing.T) {
 				t.Fatal("timeout waiting for lock acquisition")
 			}
 		}
+
+		wg.Wait()
+		close(acquired)
 
 		assert.Len(t, acquiredLocks, numGoroutines)
 

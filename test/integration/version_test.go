@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -220,9 +221,12 @@ func TestVersion_Concurrent(t *testing.T) {
 	t.Run("concurrent version access", func(t *testing.T) {
 		const numGoroutines = 10
 		results := make(chan int, numGoroutines)
+		var wg sync.WaitGroup
 
 		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				v, err := version.GetCacheVersion(
 					ctx, client,
 					adapter.NewNoOpTracer(),
@@ -248,6 +252,9 @@ func TestVersion_Concurrent(t *testing.T) {
 				t.Fatal("timeout waiting for version results")
 			}
 		}
+
+		wg.Wait()
+		close(results)
 
 		// Due to race conditions in concurrent initialization,
 		// some goroutines might see version 1, others might see higher versions
