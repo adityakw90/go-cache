@@ -193,36 +193,23 @@ func TestAdapter_NoOpSpan_End(t *testing.T) {
 
 func TestAdapter_NoOpSpan_AddEvent(t *testing.T) {
 	tests := []struct {
-		name      string
-		event     string
-		attrs     []SpanAttribute
-		checkFunc func(t *testing.T, span *NoOpSpan)
+		name  string
+		event string
+		attrs []SpanAttribute
 	}{
 		{
 			name:  "add event without attrs",
 			event: "test-event",
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.AddEvent("test-event")
-			},
 		},
 		{
 			name:  "add event with nil attrs",
 			event: "test-event",
 			attrs: nil,
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.AddEvent("test-event", nil)
-			},
 		},
 		{
 			name:  "add event with empty attrs",
 			event: "test-event",
 			attrs: []SpanAttribute{},
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.AddEvent("test-event")
-			},
 		},
 		{
 			name:  "add event with multiple attrs",
@@ -231,27 +218,19 @@ func TestAdapter_NoOpSpan_AddEvent(t *testing.T) {
 				&NoOpSpanAttribute{},
 				&NoOpSpanAttribute{},
 			},
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.AddEvent("test-event", &NoOpSpanAttribute{}, &NoOpSpanAttribute{})
-			},
 		},
 		{
 			name:  "add event with empty name",
 			event: "",
-			checkFunc: func(t *testing.T, span *NoOpSpan) {
-				// Should not panic
-				span.AddEvent("")
-			},
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt // shadow tt to capture it correctly in the closure
 		t.Run(tt.name, func(t *testing.T) {
 			span := &NoOpSpan{}
-			if tt.checkFunc != nil {
-				tt.checkFunc(t, span)
-			}
+			// Should not panic
+			span.AddEvent(tt.event, tt.attrs...)
 		})
 	}
 }
