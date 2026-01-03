@@ -51,7 +51,11 @@ func TestAdapter_NoOpTracer_StartSpan(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			newCtx, span := tracer.StartSpan(ctx, tt.spanName)
+			testCtx := ctx
+			if tt.name == "start span with nil context" {
+				testCtx = nil
+			}
+			newCtx, span := tracer.StartSpan(testCtx, tt.spanName)
 			if tt.checkFunc != nil {
 				tt.checkFunc(t, newCtx, span)
 			}
