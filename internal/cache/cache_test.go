@@ -71,7 +71,6 @@ func TestCache_NewCache(t *testing.T) {
 					VersionExpire: 1 * time.Hour,
 					LockDuration:  5 * time.Second,
 					LockInterval:  100 * time.Millisecond,
-					SemaphoreSize: 20,
 					Tracer:        adapter.NewNoOpTracer(),
 					Logger:        adapter.NewNoOpLogger(),
 					Semaphore:     adapter.NewSemaphore(20),
@@ -223,10 +222,9 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					SemaphoreSize: 0,
-					Tracer:        adapter.NewNoOpTracer(),
-					Logger:        adapter.NewNoOpLogger(),
-					Semaphore:     adapter.NewSemaphore(1),
+					Tracer:    adapter.NewNoOpTracer(),
+					Logger:    adapter.NewNoOpLogger(),
+					Semaphore: adapter.NewSemaphore(0),
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {

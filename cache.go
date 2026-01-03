@@ -49,7 +49,6 @@ func NewCache(redisClient *redis.Client, opts ...Option) (Cache, error) {
 		VersionExpire:       rootOpts.versionExpire,
 		LockDuration:        rootOpts.lockDuration,
 		LockInterval:        rootOpts.lockInterval,
-		SemaphoreSize:       rootOpts.semaphoreSize,
 		Tracer:              tracer,
 		Logger:              logger,
 		Semaphore:           semaphore,

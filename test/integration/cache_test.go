@@ -22,7 +22,6 @@ func setupCache(t *testing.T) (*cache.Cache, *redis.Client) {
 		VersionExpire:       24 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		SemaphoreSize:       10,
 		Tracer:              adapter.NewNoOpTracer(),
 		Logger:              adapter.NewNoOpLogger(),
 		Semaphore:           adapter.NewSemaphore(10),

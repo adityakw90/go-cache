@@ -38,7 +38,6 @@ type Options struct {
 	VersionExpire       time.Duration
 	LockDuration        time.Duration
 	LockInterval        time.Duration
-	SemaphoreSize       int
 	Tracer              adapter.Tracer
 	Logger              adapter.Logger
 	Semaphore           adapter.Semaphore
