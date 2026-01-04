@@ -304,6 +304,29 @@ func TestHash_HandleStruct(t *testing.T) {
 		Name string
 		Age  int
 	}
+	type TestFirstUnexportedStruct struct {
+		unexported string
+		Name       string
+		Age        int
+		Exported   string
+	}
+	type TestMiddleUnexportedStruct struct {
+		Name       string
+		unexported string
+		Age        int
+		Exported   string
+	}
+	type TestLastUnexportedStruct struct {
+		Name       string
+		Age        int
+		Exported   string
+		unexported string
+	}
+	type TestAllUnexportedStruct struct {
+		unexported string
+		name       string
+		age        int
+	}
 
 	tests := []struct {
 		name      string
@@ -328,6 +351,34 @@ func TestHash_HandleStruct(t *testing.T) {
 				assert.Contains(t, result, "Name:")
 				assert.Contains(t, result, "Age:")
 				assert.Equal(t, "{Name:,Age:0}", result)
+			},
+		},
+		{
+			name:  "first unexported field",
+			value: TestFirstUnexportedStruct{unexported: "unexported", Name: "John", Age: 30, Exported: "exported"},
+			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{Name:John,Age:30,Exported:exported}", result)
+			},
+		},
+		{
+			name:  "middle unexported field",
+			value: TestMiddleUnexportedStruct{Name: "John", unexported: "unexported", Age: 30, Exported: "exported"},
+			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{Name:John,Age:30,Exported:exported}", result)
+			},
+		},
+		{
+			name:  "last unexported field",
+			value: TestLastUnexportedStruct{Name: "John", Age: 30, Exported: "exported", unexported: "unexported"},
+			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{Name:John,Age:30,Exported:exported}", result)
+			},
+		},
+		{
+			name:  "all unexported fields",
+			value: TestAllUnexportedStruct{unexported: "unexported", name: "John", age: 30},
+			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{}", result)
 			},
 		},
 	}
