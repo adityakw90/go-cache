@@ -204,4 +204,3 @@ go test -race -covermode=atomic -coverprofile=coverage.txt ./...
 
 ---
 
-*Built with SDD 3.0 - Spec-Driven Development*

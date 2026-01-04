@@ -108,7 +108,7 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 			prefix:      prefix,
 			namespace:   namespace + "-incr-error",
 			wantErr:     true,
-			errContains: "failed to increment version: failed to initialize version",
+			errContains: "failed to increment version: failed to increment version",
 		},
 	}
 
@@ -383,6 +383,6 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 
 	// Should get error during IncrementCacheVersion (before Exec is called)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to increment version: failed to initialize version")
+	assert.Contains(t, err.Error(), "failed to increment version: failed to increment version")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

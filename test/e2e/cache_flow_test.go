@@ -99,12 +99,8 @@ func TestE2E_CacheFlow_FullLifecycle(t *testing.T) {
 				require.NoError(t, err)
 				assert.LessOrEqual(t, callCount, prevCallCount+1)
 				resultMap, ok := result.(map[string]interface{})
-				if ok {
-					assert.Equal(t, "success", resultMap["result"])
-				} else {
-					require.NotNil(t, resultType)
-					assert.Equal(t, "success", resultType["result"])
-				}
+				require.True(t, ok, "result should be a map[string]interface{}")
+				assert.Equal(t, "success", resultMap["result"])
 			},
 		},
 		{
