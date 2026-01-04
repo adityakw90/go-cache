@@ -568,9 +568,9 @@ func TestCache_CleanCache_ErrorCases(t *testing.T) {
 			key:         "testKey",
 			params:      nil,
 			execute:     false,
-			expectError: false,
+			expectError: true,
 			validate: func(t *testing.T, err error) {
-				_ = err
+				assert.Error(t, err)
 			},
 		},
 		{

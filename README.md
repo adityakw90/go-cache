@@ -31,7 +31,7 @@ package main
 import (
     "context"
     "time"
-    
+
     "github.com/adityakw90/go-cache"
     "github.com/go-redis/redis/v8"
 )
@@ -41,7 +41,7 @@ func main() {
     redisClient := redis.NewClient(&redis.Options{
         Addr: "localhost:6379",
     })
-    
+
     // Create cache instance
     c, err := cache.NewCache(
         redisClient,
@@ -51,14 +51,14 @@ func main() {
     if err != nil {
         panic(err)
     }
-    
+
     // Define a function to cache
     getUserFromDB := func(ctx context.Context, args ...interface{}) (interface{}, error) {
         userID := args[0].(string)
         // ... fetch from database
         return &User{ID: userID, Name: "John"}, nil
     }
-    
+
     // Create custom key function
     customKeyFunc, err := cache.NewCustomKeyFunction(
         "getUser",
@@ -70,7 +70,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    
+
     // Create cached function
     cachedGetUser := c.Cached(
         "getUser",
@@ -81,7 +81,7 @@ func main() {
         getUserFromDB,
         customKeyFunc,
     )
-    
+
     // Use the cached function
     ctx := context.Background()
     var user *User
@@ -89,7 +89,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    
+
     // Cache hit on subsequent calls
     var user2 *User
     result, err = cachedGetUser(&user2, ctx, "user-123")
@@ -122,21 +122,21 @@ cache, err := cache.NewCache(
 
 ### Configuration Option Details
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `WithKeyPrefix` | `string` | `"CACHE"` | Prefix for all cache keys |
-| `WithExpireDefault` | `time.Duration` | `1 * time.Minute` | Default TTL for cache entries |
-| `WithVersionExpire` | `time.Duration` | `30 * 24 * time.Hour` | TTL for version keys |
-| `WithLockDuration` | `time.Duration` | `1 * time.Minute` | Maximum time to wait for lock acquisition |
-| `WithLockInterval` | `time.Duration` | `100 * time.Millisecond` | Interval between lock acquisition retries |
-| `WithSemaphoreSize` | `int` | `10` | Size of semaphore for concurrency control |
-| `WithTracer` | `Tracer` | `NoOpTracer` | Tracer for distributed tracing |
-| `WithLogger` | `Logger` | `NoOpLogger` | Logger for observability |
-| `WithSemaphore` | `Semaphore` | Channel-based | Custom semaphore implementation |
-| `WithKeyGenerator` | `KeyGeneratorFunc` | Default generator | Custom key generator function |
-| `WithKeyVersionGenerator` | `KeyGeneratorFunc` | Default generator | Custom versioned key generator |
-| `WithVersionGenerator` | `KeyGeneratorFunc` | Default generator | Custom version key generator |
-| `WithLockGenerator` | `KeyGeneratorFunc` | Default generator | Custom lock key generator |
+| Option                    | Type               | Default                  | Description                               |
+| ------------------------- | ------------------ | ------------------------ | ----------------------------------------- |
+| `WithKeyPrefix`           | `string`           | `"CACHE"`                | Prefix for all cache keys                 |
+| `WithExpireDefault`       | `time.Duration`    | `1 * time.Minute`        | Default TTL for cache entries             |
+| `WithVersionExpire`       | `time.Duration`    | `30 * 24 * time.Hour`    | TTL for version keys                      |
+| `WithLockDuration`        | `time.Duration`    | `1 * time.Minute`        | Maximum time to wait for lock acquisition |
+| `WithLockInterval`        | `time.Duration`    | `100 * time.Millisecond` | Interval between lock acquisition retries |
+| `WithSemaphoreSize`       | `int`              | `10`                     | Size of semaphore for concurrency control |
+| `WithTracer`              | `Tracer`           | `NoOpTracer`             | Tracer for distributed tracing            |
+| `WithLogger`              | `Logger`           | `NoOpLogger`             | Logger for observability                  |
+| `WithSemaphore`           | `Semaphore`        | Channel-based            | Custom semaphore implementation           |
+| `WithKeyGenerator`        | `KeyGeneratorFunc` | Default generator        | Custom key generator function             |
+| `WithKeyVersionGenerator` | `KeyGeneratorFunc` | Default generator        | Custom versioned key generator            |
+| `WithVersionGenerator`    | `KeyGeneratorFunc` | Default generator        | Custom version key generator              |
+| `WithLockGenerator`       | `KeyGeneratorFunc` | Default generator        | Custom lock key generator                 |
 
 ## Cache Invalidation
 
@@ -256,6 +256,7 @@ cachedFunc := c.Cached(
 ```
 
 The TTL function receives:
+
 - `result`: The result returned by the cached function
 - `args`: The arguments passed to the cached function
 
@@ -269,19 +270,19 @@ If the TTL function returns a non-positive duration, the default TTL (`ExpireDef
 type Cache interface {
     // Get retrieves a value from cache by key and deserializes it into resultType
     Get(ctx context.Context, key string, resultType interface{}) error
-    
+
     // Set stores a value in cache with the specified TTL
     Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error
-    
+
     // CleanCache invalidates cache entries by incrementing version
-    CleanCache(ctx context.Context, key string, params map[string]interface{}, 
+    CleanCache(ctx context.Context, key string, params map[string]interface{},
                session redis.Pipeliner, execute bool, listLockedKey *[]string) error
-    
+
     // Cached creates a cached version of a function
-    Cached(keyName string, ttl interface{}, versioning bool, prefix string) 
-        func(fn func(ctx context.Context, args ...interface{}) (interface{}, error), 
-             customKeyFunc CustomKeyFunction) 
-        func(resultType interface{}, ctx context.Context, args ...interface{}) 
+    Cached(keyName string, ttl interface{}, versioning bool, prefix string)
+        func(fn func(ctx context.Context, args ...interface{}) (interface{}, error),
+             customKeyFunc CustomKeyFunction)
+        func(resultType interface{}, ctx context.Context, args ...interface{})
         (interface{}, error)
 }
 ```
@@ -366,26 +367,26 @@ graph TB
         B[NewCache]
         C[NewCustomKeyFunction]
     end
-    
+
     subgraph "Core Components"
         D[Cache Implementation]
         E[Version Manager]
         F[Lock Manager]
         G[Decorator]
     end
-    
+
     subgraph "Supporting Modules"
         H[Hash Generator]
         I[Serialization]
         J[Key Generator]
     end
-    
+
     subgraph "Adapters"
         K[Tracer Adapter]
         L[Logger Adapter]
         M[Semaphore Adapter]
     end
-    
+
     A --> D
     B --> D
     D --> E
@@ -525,4 +526,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
 ---
-

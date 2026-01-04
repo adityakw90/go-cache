@@ -11,6 +11,11 @@ import (
 // re-export errors
 type InvalidConfigError = errs.InvalidConfigError
 
+// NewInvalidConfigError creates a new InvalidConfigError error.
+func NewInvalidConfigError(field string, message string) error {
+	return errs.NewInvalidConfigError(field, message)
+}
+
 var (
 	// cache operation errors
 	ErrGetCacheMiss = cache.ErrGetCacheMiss
