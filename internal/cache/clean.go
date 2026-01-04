@@ -71,6 +71,7 @@ func (c *Cache) CleanCache(
 					continue
 				}
 				*listLockedKey = append(*listLockedKey, lockKey)
+				// TODO: update to session pipeline after version.IncrementCacheVersion is updated to return the command instead of the result
 				if _, err := version.IncrementCacheVersion(ctx, c.RedisClient, c.Tracer, c.Logger, c.Semaphore, c.VersionGenerator, session, prefix, namespace, c.VersionExpire); err != nil {
 					return err
 				}
@@ -94,6 +95,7 @@ func (c *Cache) CleanCache(
 				continue
 			}
 			*listLockedKey = append(*listLockedKey, lockKey)
+			// TODO: update to session pipeline after version.IncrementCacheVersion is updated to return the command instead of the result
 			if _, err := version.IncrementCacheVersion(ctx, c.RedisClient, c.Tracer, c.Logger, c.Semaphore, c.VersionGenerator, session, prefix, key, c.VersionExpire); err != nil {
 				return err
 			}

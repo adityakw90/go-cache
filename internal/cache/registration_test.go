@@ -3,6 +3,7 @@ package cache
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
@@ -92,9 +93,17 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:    adapter.NewNoOpTracer(),
-				Logger:    adapter.NewNoOpLogger(),
-				Semaphore: adapter.NewSemaphore(10),
+				ExpireDefault:       1 * time.Minute,
+				VersionExpire:       1 * time.Hour,
+				LockDuration:        5 * time.Second,
+				LockInterval:        100 * time.Millisecond,
+				Tracer:              adapter.NewNoOpTracer(),
+				Logger:              adapter.NewNoOpLogger(),
+				Semaphore:           adapter.NewSemaphore(10),
+				KeyGenerator:        key.KeyGenerator,
+				KeyVersionGenerator: key.KeyVersionGenerator,
+				VersionGenerator:    key.VersionGenerator,
+				LockGenerator:       key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -112,9 +121,17 @@ func TestCache_RegisterCacheKey_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:    adapter.NewNoOpTracer(),
-		Logger:    adapter.NewNoOpLogger(),
-		Semaphore: adapter.NewSemaphore(10),
+		ExpireDefault:       1 * time.Minute,
+		VersionExpire:       1 * time.Hour,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
+		KeyGenerator:        key.KeyGenerator,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -226,9 +243,17 @@ func TestCache_RegisterCustomKey(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:    adapter.NewNoOpTracer(),
-				Logger:    adapter.NewNoOpLogger(),
-				Semaphore: adapter.NewSemaphore(10),
+				ExpireDefault:       1 * time.Minute,
+				VersionExpire:       1 * time.Hour,
+				LockDuration:        5 * time.Second,
+				LockInterval:        100 * time.Millisecond,
+				Tracer:              adapter.NewNoOpTracer(),
+				Logger:              adapter.NewNoOpLogger(),
+				Semaphore:           adapter.NewSemaphore(10),
+				KeyGenerator:        key.KeyGenerator,
+				KeyVersionGenerator: key.KeyVersionGenerator,
+				VersionGenerator:    key.VersionGenerator,
+				LockGenerator:       key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -246,9 +271,17 @@ func TestCache_RegisterCustomKey_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:    adapter.NewNoOpTracer(),
-		Logger:    adapter.NewNoOpLogger(),
-		Semaphore: adapter.NewSemaphore(10),
+		ExpireDefault:       1 * time.Minute,
+		VersionExpire:       1 * time.Hour,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
+		KeyGenerator:        key.KeyGenerator,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -343,9 +376,17 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:    adapter.NewNoOpTracer(),
-				Logger:    adapter.NewNoOpLogger(),
-				Semaphore: adapter.NewSemaphore(10),
+				ExpireDefault:       1 * time.Minute,
+				VersionExpire:       1 * time.Hour,
+				LockDuration:        5 * time.Second,
+				LockInterval:        100 * time.Millisecond,
+				Tracer:              adapter.NewNoOpTracer(),
+				Logger:              adapter.NewNoOpLogger(),
+				Semaphore:           adapter.NewSemaphore(10),
+				KeyGenerator:        key.KeyGenerator,
+				KeyVersionGenerator: key.KeyVersionGenerator,
+				VersionGenerator:    key.VersionGenerator,
+				LockGenerator:       key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -363,9 +404,17 @@ func TestCache_GetCacheKeyUsage_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:    adapter.NewNoOpTracer(),
-		Logger:    adapter.NewNoOpLogger(),
-		Semaphore: adapter.NewSemaphore(10),
+		ExpireDefault:       1 * time.Minute,
+		VersionExpire:       1 * time.Hour,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
+		KeyGenerator:        key.KeyGenerator,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
 	})
 	require.NoError(t, err)
 

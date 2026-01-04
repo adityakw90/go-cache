@@ -26,9 +26,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -46,9 +54,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				_, mock := redismock.NewClientMock()
 				return nil, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -66,14 +82,18 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					KeyPrefix:     "test",
-					ExpireDefault: 10 * time.Minute,
-					VersionExpire: 1 * time.Hour,
-					LockDuration:  5 * time.Second,
-					LockInterval:  100 * time.Millisecond,
-					Tracer:        adapter.NewNoOpTracer(),
-					Logger:        adapter.NewNoOpLogger(),
-					Semaphore:     adapter.NewSemaphore(20),
+					KeyPrefix:           "test",
+					ExpireDefault:       10 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(20),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -91,9 +111,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -107,9 +135,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -123,9 +159,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -139,13 +183,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
 					KeyGenerator:        key.KeyGenerator,
 					KeyVersionGenerator: key.KeyVersionGenerator,
 					VersionGenerator:    key.VersionGenerator,
 					LockGenerator:       key.LockGenerator,
-					Tracer:              adapter.NewNoOpTracer(),
-					Logger:              adapter.NewNoOpLogger(),
-					Semaphore:           adapter.NewSemaphore(10),
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -162,9 +210,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    nil,
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              nil,
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -182,9 +238,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    nil,
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              nil,
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -202,9 +266,17 @@ func TestCache_NewCache(t *testing.T) {
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: nil,
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           nil,
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -217,14 +289,358 @@ func TestCache_NewCache(t *testing.T) {
 			},
 		},
 		{
+			name:    "zero expireDefault returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       0,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "expireDefault", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "negative expireDefault returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       -1 * time.Second,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "expireDefault", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "zero versionExpire returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       0,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "versionExpire", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "negative versionExpire returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       -1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "versionExpire", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "zero lockDuration returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        0,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "lockDuration", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "negative lockDuration returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        -1 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "lockDuration", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "zero lockInterval returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        0,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "lockInterval", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "negative lockInterval returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        -1 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "lockInterval", invalidConfigErr.Field())
+				assert.Equal(t, "must be greater than zero", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "nil keyGenerator returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        nil,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "keyGenerator", invalidConfigErr.Field())
+				assert.Equal(t, "cannot be nil", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "nil keyVersionGenerator returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: nil,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "keyVersionGenerator", invalidConfigErr.Field())
+				assert.Equal(t, "cannot be nil", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "nil versionGenerator returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    nil,
+					LockGenerator:       key.LockGenerator,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "versionGenerator", invalidConfigErr.Field())
+				assert.Equal(t, "cannot be nil", invalidConfigErr.Message())
+			},
+		},
+		{
+			name:    "nil lockGenerator returns error",
+			wantErr: true,
+			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
+				client, mock := redismock.NewClientMock()
+				return client, mock, Options{
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       nil,
+				}
+			},
+			checkFunc: func(t *testing.T, cache *Cache, err error) {
+				assert.Nil(t, cache)
+				assert.Error(t, err)
+				var invalidConfigErr errs.InvalidConfigError
+				assert.ErrorAs(t, err, &invalidConfigErr)
+				assert.Equal(t, "lockGenerator", invalidConfigErr.Field())
+				assert.Equal(t, "cannot be nil", invalidConfigErr.Message())
+			},
+		},
+		{
 			name:    "zero semaphore size defaults to one",
 			wantErr: false,
 			setupFunc: func(t *testing.T) (*redis.Client, redismock.ClientMock, Options) {
 				client, mock := redismock.NewClientMock()
 				return client, mock, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(0),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(0),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				}
 			},
 			checkFunc: func(t *testing.T, cache *Cache, err error) {
@@ -262,9 +678,17 @@ func TestCache_NewCache_InitializesMaps(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:    adapter.NewNoOpTracer(),
-		Logger:    adapter.NewNoOpLogger(),
-		Semaphore: adapter.NewSemaphore(10),
+		ExpireDefault:       1 * time.Minute,
+		VersionExpire:       1 * time.Hour,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
+		KeyGenerator:        key.KeyGenerator,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
 	})
 	require.NoError(t, err)
 

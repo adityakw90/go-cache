@@ -54,6 +54,7 @@ func TestCache_Cached_Concurrent_WriteLock(t *testing.T) {
 			c, err := cache.NewCache(client, cache.Options{
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
+				VersionExpire:       1 * time.Hour,
 				LockDuration:        5 * time.Second,
 				LockInterval:        50 * time.Millisecond,
 				Tracer:              adapter.NewNoOpTracer(),
@@ -149,6 +150,7 @@ func TestCache_Cached_Concurrent_WriteLock_Timeout(t *testing.T) {
 	c, err := cache.NewCache(client, cache.Options{
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
+		VersionExpire:       1 * time.Hour,
 		LockDuration:        100 * time.Millisecond,
 		LockInterval:        10 * time.Millisecond,
 		Tracer:              adapter.NewNoOpTracer(),
@@ -236,6 +238,7 @@ func TestCache_Cached_Concurrent_WriteLock_SequentialCacheHit(t *testing.T) {
 	c, err := cache.NewCache(client, cache.Options{
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
+		VersionExpire:       1 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        50 * time.Millisecond,
 		Tracer:              adapter.NewNoOpTracer(),

@@ -3,8 +3,10 @@ package cache
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redismock/v8"
 	"github.com/stretchr/testify/assert"
@@ -38,9 +40,17 @@ func TestCache_GetSession(t *testing.T) {
 			checkFunc: func(t *testing.T, session redis.Pipeliner, mock redismock.ClientMock) {
 				client, mock2 := redismock.NewClientMock()
 				cache, err := NewCache(client, Options{
-					Tracer:    adapter.NewNoOpTracer(),
-					Logger:    adapter.NewNoOpLogger(),
-					Semaphore: adapter.NewSemaphore(10),
+					ExpireDefault:       1 * time.Minute,
+					VersionExpire:       1 * time.Hour,
+					LockDuration:        5 * time.Second,
+					LockInterval:        100 * time.Millisecond,
+					Tracer:              adapter.NewNoOpTracer(),
+					Logger:              adapter.NewNoOpLogger(),
+					Semaphore:           adapter.NewSemaphore(10),
+					KeyGenerator:        key.KeyGenerator,
+					KeyVersionGenerator: key.KeyVersionGenerator,
+					VersionGenerator:    key.VersionGenerator,
+					LockGenerator:       key.LockGenerator,
 				})
 				require.NoError(t, err)
 
@@ -61,9 +71,17 @@ func TestCache_GetSession(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:    adapter.NewNoOpTracer(),
-				Logger:    adapter.NewNoOpLogger(),
-				Semaphore: adapter.NewSemaphore(10),
+				ExpireDefault:       1 * time.Minute,
+				VersionExpire:       1 * time.Hour,
+				LockDuration:        5 * time.Second,
+				LockInterval:        100 * time.Millisecond,
+				Tracer:              adapter.NewNoOpTracer(),
+				Logger:              adapter.NewNoOpLogger(),
+				Semaphore:           adapter.NewSemaphore(10),
+				KeyGenerator:        key.KeyGenerator,
+				KeyVersionGenerator: key.KeyVersionGenerator,
+				VersionGenerator:    key.VersionGenerator,
+				LockGenerator:       key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -80,9 +98,17 @@ func TestCache_GetSession_CanBeUsed(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:    adapter.NewNoOpTracer(),
-		Logger:    adapter.NewNoOpLogger(),
-		Semaphore: adapter.NewSemaphore(10),
+		ExpireDefault:       1 * time.Minute,
+		VersionExpire:       1 * time.Hour,
+		LockDuration:        5 * time.Second,
+		LockInterval:        100 * time.Millisecond,
+		Tracer:              adapter.NewNoOpTracer(),
+		Logger:              adapter.NewNoOpLogger(),
+		Semaphore:           adapter.NewSemaphore(10),
+		KeyGenerator:        key.KeyGenerator,
+		KeyVersionGenerator: key.KeyVersionGenerator,
+		VersionGenerator:    key.VersionGenerator,
+		LockGenerator:       key.LockGenerator,
 	})
 	require.NoError(t, err)
 
