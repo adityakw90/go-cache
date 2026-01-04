@@ -28,9 +28,6 @@ func TestCache_GetSession(t *testing.T) {
 		{
 			name: "returns pipeline instance",
 			checkFunc: func(t *testing.T, session redis.Pipeliner, mock redismock.ClientMock) {
-				// Verify it's a pipeline by checking it implements the interface
-				assert.NotNil(t, session)
-				// Pipeline should be ready to use
 				assert.NotNil(t, session)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
