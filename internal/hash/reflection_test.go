@@ -24,33 +24,21 @@ func TestHash_HandleReflection_Struct(t *testing.T) {
 			name:  "struct with fields",
 			value: TestStruct{Name: "John", Age: 30},
 			checkFunc: func(t *testing.T, result string) {
-				// Should produce consistent output
-				buffer2 := &bytes.Buffer{}
-				handleReflection(buffer2, TestStruct{Name: "John", Age: 30})
-				assert.Equal(t, buffer2.String(), result)
-				// Should contain field names and values
-				assert.Contains(t, result, "Name:")
-				assert.Contains(t, result, "Age:")
-				assert.Contains(t, result, "John")
+				assert.Equal(t, "{Name:John,Age:30}", result)
 			},
 		},
 		{
 			name:  "empty struct",
 			value: TestStruct{},
 			checkFunc: func(t *testing.T, result string) {
-				// Empty struct still has fields with zero values
-				assert.Contains(t, result, "Name:")
-				assert.Contains(t, result, "Age:")
-				// Should produce consistent results
-				buffer2 := &bytes.Buffer{}
-				handleReflection(buffer2, TestStruct{})
-				assert.Equal(t, result, buffer2.String())
+				assert.Equal(t, "{Name:,Age:0}", result)
 			},
 		},
 		{
 			name:  "different struct values produce different results",
 			value: TestStruct{Name: "John", Age: 30},
 			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{Name:John,Age:30}", result)
 				buffer2 := &bytes.Buffer{}
 				handleReflection(buffer2, TestStruct{Name: "Jane", Age: 30})
 				assert.NotEqual(t, result, buffer2.String())
@@ -74,24 +62,40 @@ func TestHash_HandleReflection_StructWithUnexportedFields(t *testing.T) {
 		age      int // unexported
 		Exported string
 	}
+	type TestLastUnexportedStruct struct {
+		Name     string
+		age      int // unexported
+		Exported string
+		password string
+	}
 
 	tests := []struct {
 		name      string
-		value     TestStruct
+		value     interface{}
 		checkFunc func(t *testing.T, result string)
 	}{
 		{
 			name:  "struct with unexported fields",
 			value: TestStruct{Name: "John", age: 30, Exported: "public"},
 			checkFunc: func(t *testing.T, result string) {
-				// Should only contain exported fields
-				assert.Contains(t, result, "Name:")
-				assert.Contains(t, result, "Exported:")
-				assert.NotContains(t, result, "age:")
-				// Should produce consistent results
+				assert.Equal(t, "{Name:John,Exported:public}", result)
+			},
+		},
+		{
+			name:  "should produce consistent results",
+			value: TestStruct{Name: "John", age: 30, Exported: "public"},
+			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{Name:John,Exported:public}", result)
 				buffer2 := &bytes.Buffer{}
-				handleReflection(buffer2, TestStruct{Name: "John", age: 30, Exported: "public"})
-				assert.Equal(t, result, buffer2.String())
+				handleReflection(buffer2, TestStruct{Name: "Jane", age: 30, Exported: "public"})
+				assert.NotEqual(t, result, buffer2.String())
+			},
+		},
+		{
+			name:  "last unexported field",
+			value: TestLastUnexportedStruct{Name: "John", age: 30, Exported: "public", password: "password"},
+			checkFunc: func(t *testing.T, result string) {
+				assert.Equal(t, "{Name:John,Exported:public}", result)
 			},
 		},
 	}
@@ -150,9 +154,7 @@ func TestHash_HandleReflection_Pointer(t *testing.T) {
 				return &value
 			},
 			checkFunc: func(t *testing.T, result string) {
-				// Should dereference and process struct
-				assert.Contains(t, result, "Name:")
-				assert.Contains(t, result, "test")
+				assert.Equal(t, "{Name:test}", result)
 				// Should produce consistent results
 				type S struct{ Name string }
 				value := S{Name: "test"}

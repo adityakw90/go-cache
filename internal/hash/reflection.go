@@ -41,6 +41,7 @@ func handleStruct(buffer *bytes.Buffer, obj reflect.Value) {
 
 	buffer.WriteString("{")
 
+	firstWritten := false
 	for i := 0; i < numFields; i++ {
 		field := obj.Field(i)
 
@@ -49,15 +50,18 @@ func handleStruct(buffer *bytes.Buffer, obj reflect.Value) {
 			continue
 		}
 
+		// Add a comma if we've already written at least one field
+		if firstWritten {
+			buffer.WriteString(",")
+		}
+
 		// Write field name and value to the buffer
 		buffer.WriteString(objType.Field(i).Name)
 		buffer.WriteString(":")
 		makeHashable(buffer, field.Interface())
 
-		// Add a comma if it's not the last field
-		if i < numFields-1 {
-			buffer.WriteString(",")
-		}
+		// Mark that we've written at least one field
+		firstWritten = true
 	}
 	buffer.WriteString("}")
 }
@@ -93,4 +97,3 @@ func handleReflectionMap(buffer *bytes.Buffer, val reflect.Value) {
 	}
 	buffer.WriteString("}")
 }
-
