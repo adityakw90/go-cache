@@ -35,6 +35,7 @@ type Logger interface {
 
 // Semaphore interface for concurrency control.
 type Semaphore interface {
-	Acquire() // Acquire acquires a semaphore permit, blocking if necessary.
-	Release() // Release releases a semaphore permit.
+	Size() int // Size returns the size of the semaphore.
+	Acquire()  // Acquire acquires a semaphore permit, blocking if necessary.
+	Release()  // Release releases a semaphore permit.
 }

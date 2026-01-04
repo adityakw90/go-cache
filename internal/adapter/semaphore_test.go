@@ -20,6 +20,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 			size: 5,
 			checkFunc: func(t *testing.T, sem Semaphore) {
 				assert.NotNil(t, sem)
+				assert.Equal(t, 5, sem.Size())
 			},
 		},
 		{
@@ -27,6 +28,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 			size: 0,
 			checkFunc: func(t *testing.T, sem Semaphore) {
 				assert.NotNil(t, sem)
+				assert.Equal(t, 1, sem.Size())
 			},
 		},
 		{
@@ -34,6 +36,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 			size: -1,
 			checkFunc: func(t *testing.T, sem Semaphore) {
 				assert.NotNil(t, sem)
+				assert.Equal(t, 1, sem.Size())
 			},
 		},
 		{
@@ -41,6 +44,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 			size: 1000,
 			checkFunc: func(t *testing.T, sem Semaphore) {
 				assert.NotNil(t, sem)
+				assert.Equal(t, 1000, sem.Size())
 			},
 		},
 		{
@@ -48,6 +52,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 			size: 1,
 			checkFunc: func(t *testing.T, sem Semaphore) {
 				assert.NotNil(t, sem)
+				assert.Equal(t, 1, sem.Size())
 			},
 		},
 	}
