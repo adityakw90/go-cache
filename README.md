@@ -105,7 +105,6 @@ cache, err := cache.NewCache(
     cache.WithVersionExpire(30 * 24 * time.Hour), // Version key TTL
     cache.WithLockDuration(time.Minute),       // Lock timeout
     cache.WithLockInterval(100 * time.Millisecond), // Lock retry interval
-    cache.WithSemaphoreSize(10),               // Concurrency limit
     cache.WithTracer(myTracer),                // Optional tracer
     cache.WithLogger(myLogger),                // Optional logger
 )
