@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"github.com/adityakw90/go-cache/internal/cache"
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/lock"
@@ -11,6 +12,9 @@ import (
 type InvalidConfigError = errs.InvalidConfigError
 
 var (
+	// cache operation errors
+	ErrGetCacheMiss = cache.ErrGetCacheMiss
+
 	// lock errors
 	ErrLockAcquireFailed    = lock.ErrLockAcquireFailed
 	ErrLockReleaseUnlocked  = lock.ErrLockReleaseUnlocked
