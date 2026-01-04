@@ -52,7 +52,20 @@ func NewCache(redisClient *redis.Client, opts Options) (*Cache, error) {
 	if redisClient == nil {
 		return nil, errs.NewInvalidConfigError("redisClient", "cannot be nil")
 	}
+	if opts.ExpireDefault <= 0 {
+		return nil, errs.NewInvalidConfigError("expireDefault", "must be greater than zero")
+	}
+	if opts.VersionExpire <= 0 {
+		return nil, errs.NewInvalidConfigError("versionExpire", "must be greater than zero")
+	}
+	if opts.LockDuration <= 0 {
+		return nil, errs.NewInvalidConfigError("lockDuration", "must be greater than zero")
+	}
+	if opts.LockInterval <= 0 {
+		return nil, errs.NewInvalidConfigError("lockInterval", "must be greater than zero")
+	}
 
+	// validate adapter
 	if opts.Tracer == nil {
 		return nil, errs.NewInvalidConfigError("tracer", "cannot be nil")
 	}
@@ -63,6 +76,20 @@ func NewCache(redisClient *redis.Client, opts Options) (*Cache, error) {
 
 	if opts.Semaphore == nil {
 		return nil, errs.NewInvalidConfigError("semaphore", "cannot be nil")
+	}
+
+	// validate generators
+	if opts.KeyGenerator == nil {
+		return nil, errs.NewInvalidConfigError("keyGenerator", "cannot be nil")
+	}
+	if opts.KeyVersionGenerator == nil {
+		return nil, errs.NewInvalidConfigError("keyVersionGenerator", "cannot be nil")
+	}
+	if opts.VersionGenerator == nil {
+		return nil, errs.NewInvalidConfigError("versionGenerator", "cannot be nil")
+	}
+	if opts.LockGenerator == nil {
+		return nil, errs.NewInvalidConfigError("lockGenerator", "cannot be nil")
 	}
 
 	c := &Cache{
