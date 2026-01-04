@@ -221,6 +221,7 @@ func TestVersion_Concurrent(t *testing.T) {
 	t.Run("concurrent version access", func(t *testing.T) {
 		const numGoroutines = 10
 		results := make(chan int, numGoroutines)
+		errs := make(chan error, numGoroutines)
 		var wg sync.WaitGroup
 
 		for i := 0; i < numGoroutines; i++ {
@@ -237,9 +238,11 @@ func TestVersion_Concurrent(t *testing.T) {
 					namespace+"_concurrent",
 					prefix,
 				)
-				if err == nil {
-					results <- v
+				if err != nil {
+					errs <- err
+					return
 				}
+				results <- v
 			}()
 		}
 
@@ -248,6 +251,8 @@ func TestVersion_Concurrent(t *testing.T) {
 			select {
 			case v := <-results:
 				versions[v]++
+			case err := <-errs:
+				require.NoError(t, err, "GetCacheVersion failed in goroutine")
 			case <-time.After(2 * time.Second):
 				t.Fatal("timeout waiting for version results")
 			}
@@ -255,6 +260,12 @@ func TestVersion_Concurrent(t *testing.T) {
 
 		wg.Wait()
 		close(results)
+		close(errs)
+
+		// Check for any remaining errors
+		for err := range errs {
+			require.NoError(t, err, "GetCacheVersion failed in goroutine")
+		}
 
 		// Due to race conditions in concurrent initialization,
 		// some goroutines might see version 1, others might see higher versions
