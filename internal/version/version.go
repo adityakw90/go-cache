@@ -124,7 +124,7 @@ func IncrementCacheVersion(
 	// Increment the version in Redis
 	versionInt, err := redisClient.Incr(ctx, key).Result()
 	if err != nil {
-		return 0, fmt.Errorf("failed to initialize version: %w", err)
+		return 0, fmt.Errorf("failed to increment version (key: %s): %w", key, err)
 	}
 
 	// Asynchronously check TTL
