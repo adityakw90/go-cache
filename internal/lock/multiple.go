@@ -69,6 +69,9 @@ func AcquireMultipleLock(
 		_, err := pipe.Exec(timeoutCtx)
 		if err != nil {
 			// Handle any pipeline execution errors
+			if len(acquiredLocks) > 0 {
+				ReleaseMultipleLock(ctx, redisClient, acquiredLocks)
+			}
 			return nil, fmt.Errorf("pipeline execution error: %w", err)
 		}
 
