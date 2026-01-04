@@ -5,9 +5,10 @@ import "github.com/go-redis/redis/v8"
 // luaScriptUnlock is a Lua script for atomic lock release.
 // It checks if the lock exists and if the token matches before deleting.
 var scriptUnlock = `
-if redis.call("GET", KEYS[1]) == false then
+local val = redis.call("GET", KEYS[1])
+if val == false then
     return -1
-elseif redis.call("GET", KEYS[1]) == ARGV[1] then
+elseif val == ARGV[1] then
     return redis.call("DEL", KEYS[1])
 else
     return 0
