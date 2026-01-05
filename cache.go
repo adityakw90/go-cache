@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/adityakw90/go-cache/internal/adapter"
 	internalcache "github.com/adityakw90/go-cache/internal/cache"

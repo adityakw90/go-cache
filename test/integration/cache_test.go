@@ -9,7 +9,7 @@ import (
 	"github.com/adityakw90/go-cache/internal/cache"
 	"github.com/adityakw90/go-cache/internal/key"
 	testutil "github.com/adityakw90/go-cache/test/util"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

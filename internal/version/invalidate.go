@@ -7,7 +7,7 @@ import (
 
 	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // InvalidateVersion invalidates all cache entries for a namespace by incrementing the version.

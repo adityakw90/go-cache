@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/errs"
