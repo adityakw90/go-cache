@@ -21,9 +21,9 @@ test:
 test-cover:
 	@echo "Running tests with coverage..."
 	@if echo "$(MAKECMDGOALS)" | grep -q "verbose"; then \
-		go test -v -race -covermode=atomic -coverprofile=coverage.txt $$(go list ./... | grep -v '/test/'); \
+		go test -v -race -covermode=atomic -coverprofile=coverage.txt $$(go list ./... | grep -v '/test/util$$'); \
 	else \
-		go test -race -covermode=atomic -coverprofile=coverage.txt $$(go list ./... | grep -v '/test/'); \
+		go test -race -covermode=atomic -coverprofile=coverage.txt $$(go list ./... | grep -v '/test/util$$'); \
 	fi
 
 # Clean test cache and coverage files
