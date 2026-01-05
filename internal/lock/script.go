@@ -1,6 +1,6 @@
 package lock
 
-import "github.com/go-redis/redis/v8"
+import "github.com/redis/go-redis/v9"
 
 // luaScriptUnlock is a Lua script for atomic lock release.
 // It checks if the lock exists and if the token matches before deleting.

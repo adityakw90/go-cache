@@ -7,7 +7,7 @@ import (
 
 	"github.com/adityakw90/go-cache/internal/lock"
 	"github.com/adityakw90/go-cache/internal/version"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 func (c *Cache) CleanCache(

@@ -1,6 +1,6 @@
 package cache
 
-import "github.com/go-redis/redis/v8"
+import "github.com/redis/go-redis/v9"
 
 // getSession returns a Redis pipeline session.
 func (c *Cache) getSession() redis.Pipeliner {

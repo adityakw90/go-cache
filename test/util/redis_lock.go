@@ -23,6 +23,9 @@ func lockRedisDB(db int) (*os.File, error) {
 }
 
 func unlockRedisDB(f *os.File) {
+	if f == nil {
+		return
+	}
 	_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 	_ = f.Close()
 }

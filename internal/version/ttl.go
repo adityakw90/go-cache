@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/adityakw90/go-cache/internal/adapter"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 func CheckVersionTtl(
