@@ -33,7 +33,7 @@ import (
     "time"
 
     "github.com/adityakw90/go-cache"
-    "github.com/go-redis/redis/v8"
+    "github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -513,16 +513,20 @@ go test ./test/e2e/...
 
 ## Requirements
 
-- Go 1.22+
+- Go 1.24+
 - Redis server (6.0+ recommended)
-- `github.com/go-redis/redis/v8`
+- `github.com/redis/go-redis/v9`
 
-## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a detailed list of changes and version history.
 
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
 
----
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
