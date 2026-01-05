@@ -1,6 +1,8 @@
 module github.com/adityakw90/go-cache
 
-go 1.22.4
+go 1.24.0
+
+toolchain go1.25.5
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5
