@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v9"
 	"github.com/redis/go-redis/v9"
@@ -15,8 +15,9 @@ import (
 )
 
 func TestVersion_GetCacheVersion(t *testing.T) {
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	getLogger := adapter.GetNoOpLogger
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	versionExpire := 1 * time.Hour
@@ -153,9 +154,10 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 			version, err := GetCacheVersion(
 				ctx,
 				client,
-				tracer,
-				logger,
+				startSpan,
+				startChildSpan,
 				semaphore,
+				getLogger,
 				testGenerator,
 				versionExpire,
 				tt.namespace,
@@ -178,8 +180,9 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 }
 
 func TestVersion_IncrementCacheVersion(t *testing.T) {
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	getLogger := adapter.GetNoOpLogger
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	ttl := 1 * time.Hour
@@ -263,9 +266,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 				_, err := IncrementCacheVersion(
 					ctx,
 					client,
-					tracer,
-					logger,
+					startSpan,
+					startChildSpan,
 					semaphore,
+					getLogger,
 					versionGenerator,
 					session,
 					tt.prefix,
@@ -286,9 +290,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 			version, err := IncrementCacheVersion(
 				ctx,
 				client,
-				tracer,
-				logger,
+				startSpan,
+				startChildSpan,
 				semaphore,
+				getLogger,
 				versionGenerator,
 				session,
 				tt.prefix,
@@ -319,8 +324,8 @@ func TestVersion_IncrementCacheVersion_PipelineExecution(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	ttl := 1 * time.Hour
@@ -345,9 +350,10 @@ func TestVersion_IncrementCacheVersion_PipelineExecution(t *testing.T) {
 	version, err := IncrementCacheVersion(
 		ctx,
 		client,
-		tracer,
-		logger,
+		startSpan,
+		startChildSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		versionGenerator,
 		session,
 		prefix,

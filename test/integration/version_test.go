@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/version"
 	testutil "github.com/adityakw90/go-cache/test/util"
@@ -22,13 +22,18 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 	prefix := "test"
 	namespace := "test_namespace"
 	versionExpire := 24 * time.Hour
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	semaphore := adapter.NewSemaphore(10)
+	getLogger := adapter.GetNoOpLogger
 
 	t.Run("get version initializes to 1", func(t *testing.T) {
 		v, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_init",
@@ -41,9 +46,10 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 	t.Run("get version returns existing version", func(t *testing.T) {
 		v1, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_existing",
@@ -54,9 +60,10 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 
 		v2, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_existing",
@@ -69,9 +76,10 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 	t.Run("different namespaces have different versions", func(t *testing.T) {
 		v1, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_ns1",
@@ -81,9 +89,10 @@ func TestVersion_GetCacheVersion(t *testing.T) {
 
 		v2, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_ns2",
@@ -104,13 +113,18 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 	prefix := "test"
 	namespace := "test_increment"
 	versionExpire := 24 * time.Hour
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	semaphore := adapter.NewSemaphore(10)
+	getLogger := adapter.GetNoOpLogger
 
 	t.Run("increment version in pipeline", func(t *testing.T) {
 		v1, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_pipe",
@@ -122,9 +136,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 		session := client.Pipeline()
 		_, err = version.IncrementCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			session,
 			prefix,
@@ -138,9 +153,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 
 		v2, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_pipe",
@@ -153,9 +169,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 	t.Run("multiple increments", func(t *testing.T) {
 		v1, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_multi",
@@ -167,9 +184,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 		session := client.Pipeline()
 		_, err = version.IncrementCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			session,
 			prefix,
@@ -180,9 +198,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 
 		_, err = version.IncrementCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			session,
 			prefix,
@@ -196,9 +215,10 @@ func TestVersion_IncrementCacheVersion(t *testing.T) {
 
 		v2, err := version.GetCacheVersion(
 			ctx, client,
-			adapter.NewNoOpTracer(),
-			adapter.NewNoOpLogger(),
-			adapter.NewSemaphore(10),
+			startSpan,
+			startChildSpan,
+			semaphore,
+			getLogger,
 			key.VersionGenerator,
 			versionExpire,
 			namespace+"_multi",
@@ -217,6 +237,10 @@ func TestVersion_Concurrent(t *testing.T) {
 	prefix := "test"
 	namespace := "test_concurrent"
 	versionExpire := 24 * time.Hour
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	semaphore := adapter.NewSemaphore(10)
+	getLogger := adapter.GetNoOpLogger
 
 	t.Run("concurrent version access", func(t *testing.T) {
 		const numGoroutines = 10
@@ -230,9 +254,10 @@ func TestVersion_Concurrent(t *testing.T) {
 				defer wg.Done()
 				v, err := version.GetCacheVersion(
 					ctx, client,
-					adapter.NewNoOpTracer(),
-					adapter.NewNoOpLogger(),
-					adapter.NewSemaphore(10),
+					startSpan,
+					startChildSpan,
+					semaphore,
+					getLogger,
 					key.VersionGenerator,
 					versionExpire,
 					namespace+"_concurrent",

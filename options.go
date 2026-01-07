@@ -1,8 +1,10 @@
 package cache
 
 import (
+	"context"
 	"time"
 
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 )
 
@@ -21,13 +23,14 @@ type options struct {
 	lockDuration        time.Duration
 	lockInterval        time.Duration
 	semaphoreSize       int
-	tracer              Tracer
-	logger              Logger
-	semaphore           Semaphore
+	semaphore           adapter.Semaphore
 	keyGenerator        KeyGeneratorFunc
 	keyVersionGenerator KeyGeneratorFunc
 	versionGenerator    KeyGeneratorFunc
 	lockGenerator       KeyGeneratorFunc
+	getLogger           adapter.GetLogger
+	startSpan           adapter.StartSpan
+	startChildSpan      adapter.StartChildSpan
 }
 
 // defaultOptions returns default cache options.
@@ -39,8 +42,6 @@ func defaultOptions() *options {
 		lockDuration:        time.Minute,
 		lockInterval:        100 * time.Millisecond,
 		semaphoreSize:       10,
-		tracer:              nil,
-		logger:              nil,
 		semaphore:           nil, // Will be created from semaphoreSize
 		keyGenerator:        key.KeyGenerator,
 		keyVersionGenerator: key.KeyVersionGenerator,
@@ -94,26 +95,8 @@ func WithSemaphoreSize(size int) Option {
 	}
 }
 
-// WithTracer sets an optional tracer for observability.
-func WithTracer(tracer Tracer) Option {
-	return func(o *options) {
-		if tracer != nil {
-			o.tracer = tracer
-		}
-	}
-}
-
-// WithLogger sets an optional logger for observability.
-func WithLogger(logger Logger) Option {
-	return func(o *options) {
-		if logger != nil {
-			o.logger = logger
-		}
-	}
-}
-
 // WithSemaphore sets an optional semaphore (defaults to channel-based).
-func WithSemaphore(sem Semaphore) Option {
+func WithSemaphore(sem adapter.Semaphore) Option {
 	return func(o *options) {
 		if sem != nil {
 			o.semaphore = sem
@@ -153,6 +136,30 @@ func WithLockGenerator(fn KeyGeneratorFunc) Option {
 	return func(o *options) {
 		if fn != nil {
 			o.lockGenerator = fn
+		}
+	}
+}
+
+// WithLogProvider sets an optional log provider function.
+func WithLogProvider(fn func(ctx context.Context) adapter.Logger) Option {
+	return func(o *options) {
+		if fn != nil {
+			o.getLogger = fn
+		}
+	}
+}
+
+// WithTraceProvider sets an optional trace provider function.
+func WithTraceProvider(
+	fnStartSpan adapter.StartSpan,
+	fnStartChildSpan adapter.StartChildSpan,
+) Option {
+	return func(o *options) {
+		if fnStartSpan != nil {
+			o.startSpan = fnStartSpan
+		}
+		if fnStartChildSpan != nil {
+			o.startChildSpan = fnStartChildSpan
 		}
 	}
 }

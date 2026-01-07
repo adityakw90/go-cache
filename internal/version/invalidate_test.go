@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v9"
 	"github.com/redis/go-redis/v9"
@@ -15,8 +15,9 @@ import (
 )
 
 func TestVersion_InvalidateVersion(t *testing.T) {
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	getLogger := adapter.GetNoOpLogger
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	versionExpire := 1 * time.Hour
@@ -149,9 +150,10 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 			err := InvalidateVersion(
 				ctx,
 				client,
-				tracer,
-				logger,
+				startSpan,
+				startChildSpan,
 				semaphore,
+				getLogger,
 				testGenerator,
 				versionExpire,
 				keyPrefix,
@@ -179,8 +181,8 @@ func TestVersion_InvalidateVersion_PipelineExecution(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	versionExpire := 1 * time.Hour
@@ -209,9 +211,10 @@ func TestVersion_InvalidateVersion_PipelineExecution(t *testing.T) {
 	err = InvalidateVersion(
 		ctx,
 		client,
-		tracer,
-		logger,
+		startSpan,
+		startChildSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		versionGenerator,
 		versionExpire,
 		keyPrefix,
@@ -230,8 +233,8 @@ func TestVersion_InvalidateVersion_MultipleInvalidations(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	versionExpire := 1 * time.Hour
@@ -263,9 +266,10 @@ func TestVersion_InvalidateVersion_MultipleInvalidations(t *testing.T) {
 		err := InvalidateVersion(
 			ctx,
 			client,
-			tracer,
-			logger,
+			startSpan,
+			startChildSpan,
 			semaphore,
+			adapter.GetNoOpLogger,
 			versionGenerator,
 			versionExpire,
 			keyPrefix,
@@ -284,8 +288,8 @@ func TestVersion_InvalidateVersion_DifferentNamespaces(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	versionExpire := 1 * time.Hour
@@ -319,9 +323,10 @@ func TestVersion_InvalidateVersion_DifferentNamespaces(t *testing.T) {
 		err := InvalidateVersion(
 			ctx,
 			client,
-			tracer,
-			logger,
+			startSpan,
+			startChildSpan,
 			semaphore,
+			adapter.GetNoOpLogger,
 			versionGenerator,
 			versionExpire,
 			keyPrefix,
@@ -340,8 +345,8 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	versionExpire := 1 * time.Hour
@@ -370,9 +375,10 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 	err = InvalidateVersion(
 		ctx,
 		client,
-		tracer,
-		logger,
+		startSpan,
+		startChildSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		versionGenerator,
 		versionExpire,
 		keyPrefix,

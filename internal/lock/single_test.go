@@ -21,7 +21,7 @@ func TestLock_AcquireLock(t *testing.T) {
 		waitTimeout time.Duration
 		setupMock   func(redismock.ClientMock, string, time.Duration)
 		ctx         context.Context
-		validate    func(*testing.T, *LockData, redismock.ClientMock)
+		validate    func(*testing.T, *LockData, error, redismock.ClientMock)
 	}{
 		{
 			name:        "success",
@@ -34,11 +34,11 @@ func TestLock_AcquireLock(t *testing.T) {
 				mock.Regexp().ExpectSetNX(key, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, timeout).SetVal(true)
 			},
 			ctx: context.Background(),
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
+				require.NoError(t, err)
 				assert.True(t, lock.Acquired)
 				assert.NotEmpty(t, lock.Token)
 				assert.Equal(t, "test:lock:1", lock.Key)
-				assert.NoError(t, lock.Error)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -53,10 +53,10 @@ func TestLock_AcquireLock(t *testing.T) {
 				mock.Regexp().ExpectSetNX(key, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, timeout).SetVal(false)
 			},
 			ctx: context.Background(),
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Acquired)
-				assert.Error(t, lock.Error)
-				assert.Equal(t, ErrLockAcquireFailed, lock.Error)
+				require.Error(t, err)
+				assert.Equal(t, ErrLockAcquireFailed, err)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -72,10 +72,10 @@ func TestLock_AcquireLock(t *testing.T) {
 				mock.Regexp().ExpectSetNX(key, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, timeout).SetErr(redisErr)
 			},
 			ctx: context.Background(),
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Acquired)
-				assert.Error(t, lock.Error)
-				assert.Contains(t, lock.Error.Error(), "error while trying to acquire lock")
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "error while trying to acquire lock")
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -92,9 +92,9 @@ func TestLock_AcquireLock(t *testing.T) {
 				mock.Regexp().ExpectSetNX(key, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, timeout).SetVal(true)
 			},
 			ctx: context.Background(),
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
+				require.NoError(t, err)
 				assert.True(t, lock.Acquired)
-				assert.NoError(t, lock.Error)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -113,10 +113,10 @@ func TestLock_AcquireLock(t *testing.T) {
 				}
 			},
 			ctx: context.Background(),
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Acquired)
-				assert.Error(t, lock.Error)
-				assert.Contains(t, lock.Error.Error(), "failed to acquire lock within the timeout")
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to acquire lock within the timeout")
 				// Note: Expectations might not be fully met due to timing, so we check leniently
 			},
 		},
@@ -135,7 +135,7 @@ func TestLock_AcquireLock(t *testing.T) {
 				cancel() // Cancel immediately
 				return ctx
 			}(),
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				// Should eventually timeout or fail
 				// The exact behavior depends on timing, but it should handle cancellation
 				assert.NotNil(t, lock)
@@ -148,9 +148,9 @@ func TestLock_AcquireLock(t *testing.T) {
 			client, mock := redismock.NewClientMock()
 			tt.setupMock(mock, tt.key, tt.timeout)
 
-			lock := AcquireLock(tt.ctx, client, tt.key, tt.timeout, tt.interval, tt.wait, tt.waitTimeout)
+			lock, err := AcquireLock(tt.ctx, client, tt.key, tt.timeout, tt.interval, tt.wait, tt.waitTimeout)
 
-			tt.validate(t, lock, mock)
+			tt.validate(t, lock, err, mock)
 		})
 	}
 }
@@ -168,12 +168,13 @@ func TestLock_AcquireLock_TokenGeneration(t *testing.T) {
 	// Mock SetNX to succeed
 	mock.Regexp().ExpectSetNX(key1, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, timeout).SetVal(true)
 
-	lock1 := AcquireLock(ctx, client, key1, timeout, interval, wait, waitTimeout)
-	require.NoError(t, mock.ExpectationsWereMet())
+	lock1, err := AcquireLock(ctx, client, key1, timeout, interval, wait, waitTimeout)
+	require.NoError(t, err)
 
 	// Acquire another lock - should have different token
 	mock.Regexp().ExpectSetNX(key2, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, timeout).SetVal(true)
-	lock2 := AcquireLock(ctx, client, key2, timeout, interval, wait, waitTimeout)
+	lock2, err := AcquireLock(ctx, client, key2, timeout, interval, wait, waitTimeout)
+	require.NoError(t, err)
 
 	assert.NotEqual(t, lock1.Token, lock2.Token, "Each lock should have a unique token")
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -186,7 +187,7 @@ func TestLock_ReleaseLock(t *testing.T) {
 		token     string
 		setupMock func(redismock.ClientMock, string, string)
 		lock      *LockData
-		validate  func(*testing.T, *LockData, redismock.ClientMock)
+		validate  func(*testing.T, *LockData, error, redismock.ClientMock)
 	}{
 		{
 			name:  "success",
@@ -205,9 +206,9 @@ func TestLock_ReleaseLock(t *testing.T) {
 				Acquired: true,
 				Released: false,
 			},
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.True(t, lock.Released)
-				assert.NoError(t, lock.Error)
+				require.NoError(t, err)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -226,10 +227,10 @@ func TestLock_ReleaseLock(t *testing.T) {
 				Acquired: true,
 				Released: false,
 			},
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Released)
-				assert.Error(t, lock.Error)
-				assert.Equal(t, ErrLockReleaseForbidden, lock.Error)
+				require.Error(t, err)
+				assert.Equal(t, ErrLockReleaseForbidden, err)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -248,10 +249,10 @@ func TestLock_ReleaseLock(t *testing.T) {
 				Acquired: true,
 				Released: false,
 			},
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Released)
-				assert.Error(t, lock.Error)
-				assert.Equal(t, ErrLockReleaseUnlocked, lock.Error)
+				require.Error(t, err)
+				assert.Equal(t, ErrLockReleaseUnlocked, err)
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -271,10 +272,10 @@ func TestLock_ReleaseLock(t *testing.T) {
 				Acquired: true,
 				Released: false,
 			},
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Released)
-				assert.Error(t, lock.Error)
-				assert.Contains(t, lock.Error.Error(), "error releasing lock")
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "error releasing lock")
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -294,10 +295,10 @@ func TestLock_ReleaseLock(t *testing.T) {
 				Acquired: true,
 				Released: false,
 			},
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				assert.False(t, lock.Released)
-				assert.Error(t, lock.Error)
-				assert.Contains(t, lock.Error.Error(), "unexpected result")
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unexpected result")
 				assert.NoError(t, mock.ExpectationsWereMet())
 			},
 		},
@@ -309,7 +310,7 @@ func TestLock_ReleaseLock(t *testing.T) {
 				// No expectations - nil lock should not call Redis
 			},
 			lock: nil,
-			validate: func(t *testing.T, lock *LockData, mock redismock.ClientMock) {
+			validate: func(t *testing.T, lock *LockData, err error, mock redismock.ClientMock) {
 				// Should not panic or call Redis
 				// No expectations, so this should pass
 				assert.NoError(t, mock.ExpectationsWereMet())
@@ -324,18 +325,18 @@ func TestLock_ReleaseLock(t *testing.T) {
 
 			tt.setupMock(mock, tt.key, tt.token)
 
-			ReleaseLock(ctx, client, tt.lock)
+			err := ReleaseLock(ctx, client, tt.lock)
 
 			// In v9, the mock library may not properly support script fallback
 			// If we get NOSCRIPT error, it's a mock limitation, not a code issue
-			if tt.lock != nil && tt.lock.Error != nil {
-				if errMsg := tt.lock.Error.Error(); errMsg == "error releasing lock: NOSCRIPT" || errMsg == "error releasing lock: NOSCRIPT " {
+			if tt.lock != nil && err != nil {
+				if errMsg := err.Error(); errMsg == "error releasing lock: NOSCRIPT" || errMsg == "error releasing lock: NOSCRIPT " {
 					t.Logf("Test skipped due to mock library limitation with script fallback in v9")
 					return
 				}
 			}
 
-			tt.validate(t, tt.lock, mock)
+			tt.validate(t, tt.lock, err, mock)
 		})
 	}
 }

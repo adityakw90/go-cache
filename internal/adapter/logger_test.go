@@ -2,8 +2,6 @@ package adapter
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAdapter_NoOpLogger_Info(t *testing.T) {
@@ -227,42 +225,6 @@ func TestAdapter_NoOpLogger_Debug(t *testing.T) {
 	}
 }
 
-func TestAdapter_NoOpLogger_WithSpanContext(t *testing.T) {
-	logger := &NoOpLogger{}
-
-	tests := []struct {
-		name      string
-		spanCtx   SpanContext
-		checkFunc func(t *testing.T, newLogger Logger)
-	}{
-		{
-			name:    "with span context",
-			spanCtx: &NoOpSpanContext{},
-			checkFunc: func(t *testing.T, newLogger Logger) {
-				assert.NotNil(t, newLogger)
-				assert.Equal(t, logger, newLogger) // Should return itself
-			},
-		},
-		{
-			name:    "with nil span context",
-			spanCtx: nil,
-			checkFunc: func(t *testing.T, newLogger Logger) {
-				assert.NotNil(t, newLogger)
-				assert.Equal(t, logger, newLogger) // Should return itself
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			newLogger := logger.WithSpanContext(tt.spanCtx)
-			if tt.checkFunc != nil {
-				tt.checkFunc(t, newLogger)
-			}
-		})
-	}
-}
-
 func TestAdapter_NoOpLogger_MultipleCalls(t *testing.T) {
 	logger := &NoOpLogger{}
 
@@ -270,29 +232,4 @@ func TestAdapter_NoOpLogger_MultipleCalls(t *testing.T) {
 	logger.Info("msg1", map[string]interface{}{"key1": "value1"})
 	logger.Error("msg2", map[string]interface{}{"key2": "value2"})
 	logger.Debug("msg3", map[string]interface{}{"key3": "value3"})
-
-	newLogger1 := logger.WithSpanContext(&NoOpSpanContext{})
-	newLogger2 := logger.WithSpanContext(&NoOpSpanContext{})
-
-	assert.Equal(t, logger, newLogger1)
-	assert.Equal(t, logger, newLogger2)
-	assert.Equal(t, newLogger1, newLogger2)
-}
-
-func TestAdapter_NoOpLogger_ChainedCalls(t *testing.T) {
-	logger := &NoOpLogger{}
-
-	// Test chaining WithSpanContext calls
-	logger1 := logger.WithSpanContext(&NoOpSpanContext{})
-	logger2 := logger1.WithSpanContext(&NoOpSpanContext{})
-	logger3 := logger2.WithSpanContext(&NoOpSpanContext{})
-
-	assert.Equal(t, logger, logger1)
-	assert.Equal(t, logger, logger2)
-	assert.Equal(t, logger, logger3)
-
-	// All should still work
-	logger1.Info("test", nil)
-	logger2.Error("test", nil)
-	logger3.Debug("test", nil)
 }

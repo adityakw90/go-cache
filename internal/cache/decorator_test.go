@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/hash"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/serialize"
@@ -46,8 +46,9 @@ func TestCache_Cached_KeyRegistration(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           tt.defaultPrefix,
 				ExpireDefault:       5 * time.Minute,
@@ -129,8 +130,9 @@ func TestCache_Cached_CustomKey(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -217,8 +219,9 @@ func TestCache_Cached_Versioning(t *testing.T) {
 			defer client.Close()
 
 			opts := Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -341,8 +344,9 @@ func TestCache_Cached_ErrorHandling(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -490,8 +494,9 @@ func TestCache_Cached_CacheHit(t *testing.T) {
 			defer client.Close()
 
 			opts := Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -590,8 +595,9 @@ func TestCache_Cached_TTL(t *testing.T) {
 			defer client.Close()
 
 			opts := Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       tt.defaultTTL,
@@ -699,8 +705,9 @@ func TestCache_Cached_CacheMiss(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -819,8 +826,9 @@ func TestCache_Cached_Concurrent(t *testing.T) {
 			mock.Regexp().ExpectEval(`.*`, []string{lockKey}, []interface{}{`.*`}).SetVal(int64(1))
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,

@@ -13,12 +13,12 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 	tests := []struct {
 		name      string
 		size      int
-		checkFunc func(t *testing.T, sem Semaphore)
+		checkFunc func(t *testing.T, sem *semaphore)
 	}{
 		{
 			name: "valid size",
 			size: 5,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				assert.NotNil(t, sem)
 				assert.Equal(t, 5, sem.Size())
 			},
@@ -26,7 +26,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 		{
 			name: "zero size defaults to 1",
 			size: 0,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				assert.NotNil(t, sem)
 				assert.Equal(t, 1, sem.Size())
 			},
@@ -34,7 +34,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 		{
 			name: "negative size defaults to 1",
 			size: -1,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				assert.NotNil(t, sem)
 				assert.Equal(t, 1, sem.Size())
 			},
@@ -42,7 +42,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 		{
 			name: "large size",
 			size: 1000,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				assert.NotNil(t, sem)
 				assert.Equal(t, 1000, sem.Size())
 			},
@@ -50,7 +50,7 @@ func TestAdapter_NewSemaphore(t *testing.T) {
 		{
 			name: "size of 1",
 			size: 1,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				assert.NotNil(t, sem)
 				assert.Equal(t, 1, sem.Size())
 			},
@@ -71,12 +71,12 @@ func TestAdapter_Semaphore_AcquireRelease(t *testing.T) {
 	tests := []struct {
 		name      string
 		size      int
-		checkFunc func(t *testing.T, sem Semaphore)
+		checkFunc func(t *testing.T, sem *semaphore)
 	}{
 		{
 			name: "acquire and release single permit",
 			size: 1,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				// Should not block when capacity available
 				sem.Acquire()
 				// Release should work
@@ -86,7 +86,7 @@ func TestAdapter_Semaphore_AcquireRelease(t *testing.T) {
 		{
 			name: "acquire and release multiple permits",
 			size: 3,
-			checkFunc: func(t *testing.T, sem Semaphore) {
+			checkFunc: func(t *testing.T, sem *semaphore) {
 				// Acquire all permits
 				sem.Acquire()
 				sem.Acquire()

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
@@ -78,8 +78,9 @@ func TestNewCache_WithOptions(t *testing.T) {
 	})
 	defer redisClient.Close()
 
-	tracer := adapter.NewNoOpTracer()
-	logger := adapter.NewNoOpLogger()
+	startSpan := adapter.NoOpStartSpan
+	startChildSpan := adapter.NoOpStartChildSpan
+	getLogger := adapter.GetNoOpLogger
 
 	tests := []struct {
 		name      string
@@ -90,8 +91,8 @@ func TestNewCache_WithOptions(t *testing.T) {
 			name: "with custom options",
 			options: []Option{
 				WithKeyPrefix("myapp"),
-				WithTracer(tracer),
-				WithLogger(logger),
+				WithTraceProvider(startSpan, startChildSpan),
+				WithLogProvider(getLogger),
 				WithSemaphoreSize(20),
 			},
 			checkFunc: func(t *testing.T, cache Cache, err error) {

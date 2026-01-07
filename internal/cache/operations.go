@@ -12,10 +12,10 @@ import (
 // Get retrieves a value from cache by key and deserializes it into resultType.
 // Returns an error if the key doesn't exist or if deserialization fails.
 func (c *Cache) Get(ctx context.Context, key string, resultType interface{}) error {
-	ctx, cacheSpan := c.Tracer.StartSpan(ctx, "cache.Get")
+	ctx, cacheSpan := c.StartSpan(ctx, "cache.Get")
 	defer cacheSpan.End()
 
-	logger := c.Logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := c.LogProvider(ctx)
 
 	logger.Debug("cache get", map[string]interface{}{
 		"key": key,
@@ -56,10 +56,10 @@ func (c *Cache) Get(ctx context.Context, key string, resultType interface{}) err
 // Set stores a value in cache with the specified TTL.
 // The value will be serialized before storing.
 func (c *Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
-	ctx, cacheSpan := c.Tracer.StartSpan(ctx, "cache.Set")
+	ctx, cacheSpan := c.StartSpan(ctx, "cache.Set")
 	defer cacheSpan.End()
 
-	logger := c.Logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := c.LogProvider(ctx)
 
 	logger.Debug("cache set", map[string]interface{}{
 		"key": key,

@@ -3,7 +3,8 @@ package cache
 import (
 	"github.com/redis/go-redis/v9"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
+	internaladapter "github.com/adityakw90/go-cache/internal/adapter"
 	internalcache "github.com/adityakw90/go-cache/internal/cache"
 	"github.com/adityakw90/go-cache/internal/key"
 )
@@ -27,19 +28,22 @@ func NewCache(redisClient *redis.Client, opts ...Option) (Cache, error) {
 	}
 
 	// Apply defaults for optional dependencies
-	tracer := rootOpts.tracer
-	if tracer == nil {
-		tracer = adapter.NewNoOpTracer()
-	}
-
-	logger := rootOpts.logger
-	if logger == nil {
-		logger = adapter.NewNoOpLogger()
-	}
-
 	semaphore := rootOpts.semaphore
 	if semaphore == nil {
-		semaphore = adapter.NewSemaphore(rootOpts.semaphoreSize)
+		semaphore = internaladapter.NewSemaphore(rootOpts.semaphoreSize)
+	}
+
+	logProvider := rootOpts.getLogger
+	if logProvider == nil {
+		logProvider = adapter.GetNoOpLogger
+	}
+	startSpan := rootOpts.startSpan
+	if startSpan == nil {
+		startSpan = adapter.NoOpStartSpan
+	}
+	startChildSpan := rootOpts.startChildSpan
+	if startChildSpan == nil {
+		startChildSpan = adapter.NoOpStartChildSpan
 	}
 
 	// Convert to internal options, converting KeyGeneratorFunc types
@@ -49,13 +53,14 @@ func NewCache(redisClient *redis.Client, opts ...Option) (Cache, error) {
 		VersionExpire:       rootOpts.versionExpire,
 		LockDuration:        rootOpts.lockDuration,
 		LockInterval:        rootOpts.lockInterval,
-		Tracer:              tracer,
-		Logger:              logger,
 		Semaphore:           semaphore,
 		KeyGenerator:        convertKeyGeneratorFunc(rootOpts.keyGenerator),
 		KeyVersionGenerator: convertKeyGeneratorFunc(rootOpts.keyVersionGenerator),
 		VersionGenerator:    convertKeyGeneratorFunc(rootOpts.versionGenerator),
 		LockGenerator:       convertKeyGeneratorFunc(rootOpts.lockGenerator),
+		LogProvider:         logProvider,
+		StartSpan:           startSpan,
+		StartChildSpan:      startChildSpan,
 	}
 
 	impl, err := internalcache.NewCache(redisClient, internalOpts)

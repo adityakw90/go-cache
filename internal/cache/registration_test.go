@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
@@ -97,8 +98,9 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 				VersionExpire:       1 * time.Hour,
 				LockDuration:        5 * time.Second,
 				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyGenerator:        key.KeyGenerator,
 				KeyVersionGenerator: key.KeyVersionGenerator,
@@ -125,8 +127,9 @@ func TestCache_RegisterCacheKey_Concurrent(t *testing.T) {
 		VersionExpire:       1 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyGenerator:        key.KeyGenerator,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -247,8 +250,9 @@ func TestCache_RegisterCustomKey(t *testing.T) {
 				VersionExpire:       1 * time.Hour,
 				LockDuration:        5 * time.Second,
 				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyGenerator:        key.KeyGenerator,
 				KeyVersionGenerator: key.KeyVersionGenerator,
@@ -275,8 +279,9 @@ func TestCache_RegisterCustomKey_Concurrent(t *testing.T) {
 		VersionExpire:       1 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyGenerator:        key.KeyGenerator,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -380,8 +385,9 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 				VersionExpire:       1 * time.Hour,
 				LockDuration:        5 * time.Second,
 				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyGenerator:        key.KeyGenerator,
 				KeyVersionGenerator: key.KeyVersionGenerator,
@@ -408,8 +414,9 @@ func TestCache_GetCacheKeyUsage_Concurrent(t *testing.T) {
 		VersionExpire:       1 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyGenerator:        key.KeyGenerator,
 		KeyVersionGenerator: key.KeyVersionGenerator,

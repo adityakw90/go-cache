@@ -239,7 +239,6 @@ func TestLock_ReleaseMultipleLock(t *testing.T) {
 					// If successful, verify locks were released
 					for _, lock := range locks {
 						assert.True(t, lock.Released)
-						assert.NoError(t, lock.Error)
 					}
 				}
 				// Skip expectation check for pipeline tests as redismock may not handle Script.Run() fallback correctly
@@ -308,7 +307,8 @@ func TestLock_ReleaseMultipleLock(t *testing.T) {
 					// If successful, verify error handling worked correctly
 					assert.True(t, locks[0].Released)
 					assert.False(t, locks[1].Released)
-					assert.Equal(t, ErrLockReleaseForbidden, locks[1].Error)
+					// Error is returned directly from ReleaseMultipleLock
+					assert.Equal(t, ErrLockReleaseForbidden, err)
 					assert.True(t, locks[2].Released)
 				}
 			},
@@ -346,17 +346,14 @@ func TestLock_ReleaseMultipleLock(t *testing.T) {
 				mock.ExpectEval(scriptUnlock, []string{locks[0].Key}, []interface{}{locks[0].Token}).SetErr(scriptErr)
 			},
 			validate: func(t *testing.T, locks []*LockData, err error, mock redismock.ClientMock) {
-				// The function processes errors per lock, not as pipeline error
-				// So it should return nil but lock.Error should be set
-				if err != nil {
-					// If pipeline Exec fails, err will be set
-					assert.Contains(t, err.Error(), "pipeline execution error")
-				} else {
-					// Otherwise, lock.Error should be set
-					assert.False(t, locks[0].Released)
-					assert.Error(t, locks[0].Error)
-					assert.Contains(t, locks[0].Error.Error(), "error releasing lock")
-				}
+				// Errors are now returned directly from ReleaseMultipleLock
+				// So it should return an error for the lock that failed
+				assert.Error(t, err)
+				// Error may be "pipeline execution error" or "error releasing lock" depending on when it occurs
+				errMsg := err.Error()
+				assert.True(t, strings.Contains(errMsg, "error releasing lock") || strings.Contains(errMsg, "pipeline execution error"),
+					"error should contain relevant message, got: %s", errMsg)
+				assert.False(t, locks[0].Released)
 				// Note: Expectations might not be fully met due to pipeline complexity
 			},
 		},

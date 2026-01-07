@@ -10,8 +10,3 @@ func (n *NoOpLogger) Error(msg string, fields map[string]interface{}) {}
 
 // Debug does nothing.
 func (n *NoOpLogger) Debug(msg string, fields map[string]interface{}) {}
-
-// WithSpanContext returns the same no-op logger.
-func (n *NoOpLogger) WithSpanContext(spanContext SpanContext) Logger {
-	return n
-}

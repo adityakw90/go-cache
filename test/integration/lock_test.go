@@ -18,38 +18,45 @@ func TestLock_AcquireRelease_Single(t *testing.T) {
 	defer client.Close()
 
 	ctx := context.Background()
-	key := "test:lock:single"
 	timeout := 5 * time.Second
 	interval := 100 * time.Millisecond
 
 	t.Run("acquire and release lock", func(t *testing.T) {
-		lockData := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		key := "test:lock:single:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		lockData, err := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData)
 		assert.True(t, lockData.Acquired)
-		assert.Empty(t, lockData.Error)
 		assert.NotEmpty(t, lockData.Token)
 
-		lock.ReleaseLock(ctx, client, lockData)
+		err = lock.ReleaseLock(ctx, client, lockData)
+		require.NoError(t, err)
 		assert.True(t, lockData.Released)
-		assert.Empty(t, lockData.Error)
 	})
 
 	t.Run("acquire lock twice without wait", func(t *testing.T) {
-		lockData1 := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		key := "test:lock:twice:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		lockData1, err := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
-		lockData2 := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
-		require.NotNil(t, lockData2)
+		// Second attempt should fail to acquire (wait=false)
+		lockData2, err := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		require.Error(t, err) // Expect error when lock already exists
+		assert.Equal(t, lock.ErrLockAcquireFailed, err)
+		require.NotNil(t, lockData2) // LockData is still returned with Acquired=false
 		assert.False(t, lockData2.Acquired)
-		assert.Equal(t, lock.ErrLockAcquireFailed, lockData2.Error)
 
-		lock.ReleaseLock(ctx, client, lockData1)
+		err = lock.ReleaseLock(ctx, client, lockData1)
+		require.NoError(t, err)
 		assert.True(t, lockData1.Released)
 	})
 
 	t.Run("acquire lock with wait", func(t *testing.T) {
-		lockData1 := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		key := "test:lock:wait:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		lockData1, err := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
@@ -58,46 +65,56 @@ func TestLock_AcquireRelease_Single(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(200 * time.Millisecond)
-			lock.ReleaseLock(ctx, client, lockData1)
+			err := lock.ReleaseLock(ctx, client, lockData1)
+			require.NoError(t, err)
 		}()
 
-		lockData2 := lock.AcquireLock(ctx, client, key, timeout, interval, true, 2*time.Second)
+		// Second attempt should succeed (wait=true and lock is released within timeout)
+		lockData2, err := lock.AcquireLock(ctx, client, key, timeout, interval, true, 2*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData2)
 		assert.True(t, lockData2.Acquired)
-		assert.Empty(t, lockData2.Error)
 
-		lock.ReleaseLock(ctx, client, lockData2)
+		err = lock.ReleaseLock(ctx, client, lockData2)
+		require.NoError(t, err)
 		assert.True(t, lockData2.Released)
 
 		wg.Wait()
 	})
 
 	t.Run("release unlocked lock", func(t *testing.T) {
+		// This test uses a key that should not exist in Redis
+		uniqueKey := "test:lock:nonexistent:" + fmt.Sprintf("%d", time.Now().UnixNano())
 		lockData := &lock.LockData{
-			Key:      key,
+			Key:      uniqueKey,
 			Token:    "invalid-token",
 			Acquired: false,
 		}
 
-		lock.ReleaseLock(ctx, client, lockData)
-		assert.Equal(t, lock.ErrLockReleaseUnlocked, lockData.Error)
+		err := lock.ReleaseLock(ctx, client, lockData)
+		assert.Equal(t, lock.ErrLockReleaseUnlocked, err)
 	})
 
 	t.Run("release lock with wrong token", func(t *testing.T) {
-		lockData1 := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		key := "test:lock:wrongtoken:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		lockData1, err := lock.AcquireLock(ctx, client, key, timeout, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
+		// Try to release with wrong token
 		lockData2 := &lock.LockData{
 			Key:      key,
 			Token:    "wrong-token",
 			Acquired: false,
 		}
+		err = lock.ReleaseLock(ctx, client, lockData2)
+		assert.Error(t, err)
+		assert.Equal(t, lock.ErrLockReleaseForbidden, err)
 
-		lock.ReleaseLock(ctx, client, lockData2)
-		assert.Equal(t, lock.ErrLockReleaseForbidden, lockData2.Error)
-
-		lock.ReleaseLock(ctx, client, lockData1)
+		// Release with correct token should succeed
+		err = lock.ReleaseLock(ctx, client, lockData1)
+		require.NoError(t, err)
 		assert.True(t, lockData1.Released)
 	})
 }
@@ -112,7 +129,8 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 	waitTimeout := 2 * time.Second
 
 	t.Run("acquire multiple locks", func(t *testing.T) {
-		keys := []string{"test:lock:multi:1", "test:lock:multi:2", "test:lock:multi:3"}
+		prefix := "test:lock:multi:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		keys := []string{prefix + ":1", prefix + ":2", prefix + ":3"}
 
 		locks, err := lock.AcquireMultipleLock(ctx, client, keys, timeout, interval, false, waitTimeout)
 		require.NoError(t, err)
@@ -120,7 +138,6 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 
 		for _, lockData := range locks {
 			assert.True(t, lockData.Acquired)
-			assert.Empty(t, lockData.Error)
 			assert.NotEmpty(t, lockData.Token)
 		}
 
@@ -133,23 +150,28 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 	})
 
 	t.Run("acquire multiple locks with some already locked", func(t *testing.T) {
-		keys := []string{"test:lock:multi:4", "test:lock:multi:5"}
+		prefix := "test:lock:multimixed:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		keys := []string{prefix + ":4", prefix + ":5"}
 
-		lockData1 := lock.AcquireLock(ctx, client, keys[0], timeout, interval, false, 1*time.Second)
+		lockData1, err := lock.AcquireLock(ctx, client, keys[0], timeout, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
-		_, err := lock.AcquireMultipleLock(ctx, client, keys, timeout, interval, false, waitTimeout)
+		_, err = lock.AcquireMultipleLock(ctx, client, keys, timeout, interval, false, waitTimeout)
 		assert.Error(t, err)
 		assert.Equal(t, lock.ErrLockAcquireFailed, err)
 
-		lock.ReleaseLock(ctx, client, lockData1)
+		err = lock.ReleaseLock(ctx, client, lockData1)
+		require.NoError(t, err)
 	})
 
 	t.Run("acquire multiple locks with wait", func(t *testing.T) {
-		keys := []string{"test:lock:multi:6", "test:lock:multi:7"}
+		prefix := "test:lock:multiwait:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		keys := []string{prefix + ":6", prefix + ":7"}
 
-		lockData1 := lock.AcquireLock(ctx, client, keys[0], timeout, interval, false, 1*time.Second)
+		lockData1, err := lock.AcquireLock(ctx, client, keys[0], timeout, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
@@ -158,7 +180,8 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(200 * time.Millisecond)
-			lock.ReleaseLock(ctx, client, lockData1)
+			err := lock.ReleaseLock(ctx, client, lockData1)
+			require.NoError(t, err)
 		}()
 
 		locks, err := lock.AcquireMultipleLock(ctx, client, keys, timeout, interval, true, waitTimeout)
@@ -176,17 +199,20 @@ func TestLock_AcquireRelease_Multiple(t *testing.T) {
 	})
 
 	t.Run("acquire multiple locks timeout", func(t *testing.T) {
-		keys := []string{"test:lock:multi:8"}
+		prefix := "test:lock:multitimeout:" + fmt.Sprintf("%d", time.Now().UnixNano())
+		keys := []string{prefix + ":8"}
 
-		lockData1 := lock.AcquireLock(ctx, client, keys[0], 10*time.Second, interval, false, 1*time.Second)
+		lockData1, err := lock.AcquireLock(ctx, client, keys[0], 10*time.Second, interval, false, 1*time.Second)
+		require.NoError(t, err)
 		require.NotNil(t, lockData1)
 		assert.True(t, lockData1.Acquired)
 
-		_, err := lock.AcquireMultipleLock(ctx, client, keys, timeout, interval, true, 500*time.Millisecond)
+		_, err = lock.AcquireMultipleLock(ctx, client, keys, timeout, interval, true, 500*time.Millisecond)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to acquire locks within waitTimeout")
 
-		lock.ReleaseLock(ctx, client, lockData1)
+		err = lock.ReleaseLock(ctx, client, lockData1)
+		require.NoError(t, err)
 	})
 
 	t.Run("release empty locks", func(t *testing.T) {
@@ -206,12 +232,12 @@ func TestLock_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	ctx := context.Background()
-	key := "test:lock:concurrent"
 	timeout := 5 * time.Second
 	interval := 100 * time.Millisecond
 
 	t.Run("concurrent lock acquisition", func(t *testing.T) {
 		const numGoroutines = 10
+		prefix := "test:lock:concurrent:" + fmt.Sprintf("%d", time.Now().UnixNano())
 		acquired := make(chan *lock.LockData, numGoroutines)
 		var wg sync.WaitGroup
 
@@ -219,9 +245,9 @@ func TestLock_Concurrent(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				lockKey := key + "_" + fmt.Sprintf("%d", id)
-				lockData := lock.AcquireLock(ctx, client, lockKey, timeout, interval, true, 2*time.Second)
-				if lockData.Acquired {
+				lockKey := prefix + "_" + fmt.Sprintf("%d", id)
+				lockData, err := lock.AcquireLock(ctx, client, lockKey, timeout, interval, true, 2*time.Second)
+				if err == nil && lockData.Acquired {
 					acquired <- lockData
 				}
 			}(i)
@@ -243,7 +269,8 @@ func TestLock_Concurrent(t *testing.T) {
 		assert.Len(t, acquiredLocks, numGoroutines)
 
 		for _, lockData := range acquiredLocks {
-			lock.ReleaseLock(ctx, client, lockData)
+			err := lock.ReleaseLock(ctx, client, lockData)
+			require.NoError(t, err)
 			assert.True(t, lockData.Released)
 		}
 	})

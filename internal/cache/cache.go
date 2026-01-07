@@ -6,7 +6,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/errs"
 	"github.com/adityakw90/go-cache/internal/key"
 )
@@ -14,8 +14,9 @@ import (
 // Cache is the internal cache implementation.
 type Cache struct {
 	RedisClient         *redis.Client
-	Tracer              adapter.Tracer
-	Logger              adapter.Logger
+	LogProvider         adapter.GetLogger
+	StartSpan           adapter.StartSpan
+	StartChildSpan      adapter.StartChildSpan
 	Semaphore           adapter.Semaphore
 	KeyPrefix           string
 	KeyGenerator        key.KeyGeneratorFunc
@@ -38,8 +39,9 @@ type Options struct {
 	VersionExpire       time.Duration
 	LockDuration        time.Duration
 	LockInterval        time.Duration
-	Tracer              adapter.Tracer
-	Logger              adapter.Logger
+	LogProvider         adapter.GetLogger
+	StartSpan           adapter.StartSpan
+	StartChildSpan      adapter.StartChildSpan
 	Semaphore           adapter.Semaphore
 	KeyGenerator        key.KeyGeneratorFunc
 	KeyVersionGenerator key.KeyGeneratorFunc
@@ -65,15 +67,13 @@ func NewCache(redisClient *redis.Client, opts Options) (*Cache, error) {
 		return nil, errs.NewInvalidConfigError("lockInterval", "must be greater than zero")
 	}
 
-	// validate adapter
-	if opts.Tracer == nil {
-		return nil, errs.NewInvalidConfigError("tracer", "cannot be nil")
+	// validate hooks
+	if opts.StartSpan == nil {
+		return nil, errs.NewInvalidConfigError("startSpan", "cannot be nil")
 	}
-
-	if opts.Logger == nil {
-		return nil, errs.NewInvalidConfigError("logger", "cannot be nil")
+	if opts.StartChildSpan == nil {
+		return nil, errs.NewInvalidConfigError("startChildSpan", "cannot be nil")
 	}
-
 	if opts.Semaphore == nil {
 		return nil, errs.NewInvalidConfigError("semaphore", "cannot be nil")
 	}
@@ -92,10 +92,16 @@ func NewCache(redisClient *redis.Client, opts Options) (*Cache, error) {
 		return nil, errs.NewInvalidConfigError("lockGenerator", "cannot be nil")
 	}
 
+	// hooks
+	if opts.LogProvider == nil {
+		return nil, errs.NewInvalidConfigError("logProvider", "cannot be nil")
+	}
+
 	c := &Cache{
 		RedisClient:         redisClient,
-		Tracer:              opts.Tracer,
-		Logger:              opts.Logger,
+		LogProvider:         opts.LogProvider,
+		StartSpan:           opts.StartSpan,
+		StartChildSpan:      opts.StartChildSpan,
 		Semaphore:           opts.Semaphore,
 		KeyPrefix:           opts.KeyPrefix,
 		KeyGenerator:        opts.KeyGenerator,

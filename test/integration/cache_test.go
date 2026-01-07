@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/cache"
 	"github.com/adityakw90/go-cache/internal/key"
 	testutil "github.com/adityakw90/go-cache/test/util"
@@ -22,8 +22,9 @@ func setupCache(t *testing.T) (*cache.Cache, *redis.Client) {
 		VersionExpire:       24 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         adapter.GetNoOpLogger,
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyGenerator:        key.KeyGenerator,
 		KeyVersionGenerator: key.KeyVersionGenerator,

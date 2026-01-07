@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
+	internaladapter "github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
-	"github.com/redis/go-redis/v9"
 	"github.com/go-redis/redismock/v9"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -310,8 +311,9 @@ func TestCache_CleanCache(t *testing.T) {
 			defer client.Close()
 
 			opts := Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -358,9 +360,10 @@ func TestCache_CleanCache_MultiplePrefixes(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:           internaladapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		VersionExpire:       1 * time.Hour,
@@ -421,9 +424,10 @@ func TestCache_CleanCache_MultipleCustomKeys(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:           internaladapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,
 		VersionExpire:       1 * time.Hour,
@@ -612,9 +616,10 @@ func TestCache_CleanCache_ErrorCases(t *testing.T) {
 			defer client.Close()
 
 			opts := Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
-				Semaphore:           adapter.NewSemaphore(10),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+				Semaphore:           internaladapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
 				VersionExpire:       1 * time.Hour,

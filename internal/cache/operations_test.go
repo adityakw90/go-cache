@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/adityakw90/go-cache/internal/serialize"
 	"github.com/go-redis/redismock/v9"
@@ -86,8 +86,9 @@ func TestCache_Operations_Get(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -193,8 +194,9 @@ func TestCache_Operations_Set(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
+				LogProvider:         adapter.GetNoOpLogger,
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyPrefix:           "test",
 				ExpireDefault:       5 * time.Minute,
@@ -235,8 +237,9 @@ func TestCache_Operations_GetSet_Integration(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyPrefix:           "test",
 		ExpireDefault:       5 * time.Minute,

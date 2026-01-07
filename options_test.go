@@ -1,10 +1,12 @@
 package cache
 
 import (
+	"context"
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
+	internaladapter "github.com/adityakw90/go-cache/internal/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,8 +26,6 @@ func TestDefaultOptions(t *testing.T) {
 				assert.Equal(t, time.Minute, opts.lockDuration)
 				assert.Equal(t, 100*time.Millisecond, opts.lockInterval)
 				assert.Equal(t, 10, opts.semaphoreSize)
-				assert.Nil(t, opts.tracer)
-				assert.Nil(t, opts.logger)
 				assert.NotNil(t, opts.keyGenerator)
 				assert.NotNil(t, opts.keyVersionGenerator)
 				assert.NotNil(t, opts.versionGenerator)
@@ -208,88 +208,16 @@ func TestWithSemaphoreSize(t *testing.T) {
 	}
 }
 
-func TestWithTracer(t *testing.T) {
-	tests := []struct {
-		name      string
-		tracer    Tracer
-		checkFunc func(t *testing.T, opts *options, originalTracer Tracer)
-	}{
-		{
-			name:   "set tracer",
-			tracer: adapter.NewNoOpTracer(),
-			checkFunc: func(t *testing.T, opts *options, originalTracer Tracer) {
-				assert.NotNil(t, opts.tracer)
-				assert.IsType(t, (*adapter.NoOpTracer)(nil), opts.tracer)
-			},
-		},
-		{
-			name:   "nil tracer does not change",
-			tracer: nil,
-			checkFunc: func(t *testing.T, opts *options, originalTracer Tracer) {
-				// Should not change if nil is passed
-				assert.Equal(t, originalTracer, opts.tracer)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opts := defaultOptions()
-			originalTracer := opts.tracer
-			WithTracer(tt.tracer)(opts)
-			if tt.checkFunc != nil {
-				tt.checkFunc(t, opts, originalTracer)
-			}
-		})
-	}
-}
-
-func TestWithLogger(t *testing.T) {
-	tests := []struct {
-		name      string
-		logger    Logger
-		checkFunc func(t *testing.T, opts *options, originalLogger Logger)
-	}{
-		{
-			name:   "set logger",
-			logger: adapter.NewNoOpLogger(),
-			checkFunc: func(t *testing.T, opts *options, originalLogger Logger) {
-				assert.NotNil(t, opts.logger)
-				assert.IsType(t, (*adapter.NoOpLogger)(nil), opts.logger)
-			},
-		},
-		{
-			name:   "nil logger does not change",
-			logger: nil,
-			checkFunc: func(t *testing.T, opts *options, originalLogger Logger) {
-				// Should not change if nil is passed
-				assert.Equal(t, originalLogger, opts.logger)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opts := defaultOptions()
-			originalLogger := opts.logger
-			WithLogger(tt.logger)(opts)
-			if tt.checkFunc != nil {
-				tt.checkFunc(t, opts, originalLogger)
-			}
-		})
-	}
-}
-
 func TestWithSemaphore(t *testing.T) {
 	tests := []struct {
 		name      string
-		semaphore Semaphore
-		checkFunc func(t *testing.T, opts *options, originalSemaphore Semaphore, setSemaphore Semaphore)
+		semaphore adapter.Semaphore
+		checkFunc func(t *testing.T, opts *options, originalSemaphore adapter.Semaphore, setSemaphore adapter.Semaphore)
 	}{
 		{
 			name:      "set semaphore",
 			semaphore: adapter.NewSemaphore(5),
-			checkFunc: func(t *testing.T, opts *options, originalSemaphore Semaphore, setSemaphore Semaphore) {
+			checkFunc: func(t *testing.T, opts *options, originalSemaphore adapter.Semaphore, setSemaphore adapter.Semaphore) {
 				assert.NotNil(t, opts.semaphore)
 				// Verify it's a different instance (not the original)
 				assert.NotEqual(t, originalSemaphore, opts.semaphore)
@@ -300,7 +228,7 @@ func TestWithSemaphore(t *testing.T) {
 		{
 			name:      "nil semaphore does not change",
 			semaphore: nil,
-			checkFunc: func(t *testing.T, opts *options, originalSemaphore Semaphore, setSemaphore Semaphore) {
+			checkFunc: func(t *testing.T, opts *options, originalSemaphore adapter.Semaphore, setSemaphore adapter.Semaphore) {
 				// Should not change if nil is passed
 				assert.Equal(t, originalSemaphore, opts.semaphore)
 			},
@@ -576,6 +504,81 @@ func TestDefaultLockGenerator(t *testing.T) {
 			assert.Equal(t, tt.wantResult, result)
 			if tt.checkFunc != nil {
 				tt.checkFunc(t, result, err)
+			}
+		})
+	}
+}
+
+func TestWithLogProvider(t *testing.T) {
+	tests := []struct {
+		name        string
+		logProvider func(ctx context.Context) adapter.Logger
+		checkFunc   func(t *testing.T, opts *options, originalLogProvider func(ctx context.Context) adapter.Logger)
+	}{
+		{
+			name: "set log provider",
+			logProvider: func(ctx context.Context) adapter.Logger {
+				return adapter.NewNoOpLogger()
+			},
+		},
+		{
+			name:        "nil log provider does not change",
+			logProvider: nil,
+			checkFunc: func(t *testing.T, opts *options, originalLogProvider func(ctx context.Context) adapter.Logger) {
+				// Should keep the original log provider if nil is passed
+				assert.Nil(t, opts.getLogger, "getLogger should remain nil when nil is passed")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := defaultOptions()
+			originalLogProvider := opts.getLogger
+			WithLogProvider(tt.logProvider)(opts)
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, opts, originalLogProvider)
+			}
+		})
+	}
+}
+
+func TestWithTraceProvider(t *testing.T) {
+	tests := []struct {
+		name           string
+		startSpan      adapter.StartSpan
+		startChildSpan adapter.StartChildSpan
+		checkFunc      func(t *testing.T, opts *options, originalStartSpan adapter.StartSpan, originalStartChildSpan adapter.StartChildSpan)
+	}{
+		{
+			name: "set tracer",
+			startSpan: func(ctx context.Context, name string) (context.Context, adapter.Span) {
+				return ctx, &internaladapter.NoOpSpan{}
+			},
+			startChildSpan: func(ctx context.Context, name string, parent adapter.Span) (context.Context, adapter.Span) {
+				return ctx, &internaladapter.NoOpSpan{}
+			},
+			checkFunc: func(t *testing.T, opts *options, originalStartSpan adapter.StartSpan, originalStartChildSpan adapter.StartChildSpan) {
+				assert.NotNil(t, opts.startSpan)
+				assert.NotNil(t, opts.startChildSpan)
+				// Verify the spans are different from the default no-op spans
+				// by checking they were actually set (not nil) and are callable
+				_, span := opts.startSpan(context.Background(), "test")
+				assert.NotNil(t, span)
+				_, childSpan := opts.startChildSpan(context.Background(), "test", span)
+				assert.NotNil(t, childSpan)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := defaultOptions()
+			originalStartSpan := opts.startSpan
+			originalStartChildSpan := opts.startChildSpan
+			WithTraceProvider(tt.startSpan, tt.startChildSpan)(opts)
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, opts, originalStartSpan, originalStartChildSpan)
 			}
 		})
 	}

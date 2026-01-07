@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/cache"
 	"github.com/adityakw90/go-cache/internal/hash"
 	"github.com/adityakw90/go-cache/internal/key"
@@ -29,8 +29,9 @@ func TestE2E_CacheFlow_FullLifecycle(t *testing.T) {
 		VersionExpire:       24 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
+		LogProvider:         adapter.GetNoOpLogger,
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyGenerator:        key.KeyGenerator,
 		KeyVersionGenerator: key.KeyVersionGenerator,
@@ -170,13 +171,14 @@ func TestE2E_CacheFlow_Concurrent(t *testing.T) {
 		VersionExpire:       24 * time.Hour,
 		LockDuration:        5 * time.Second,
 		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
+		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 		Semaphore:           adapter.NewSemaphore(10),
 		KeyGenerator:        key.KeyGenerator,
 		KeyVersionGenerator: key.KeyVersionGenerator,
 		VersionGenerator:    key.VersionGenerator,
 		LockGenerator:       key.LockGenerator,
+		StartSpan:           adapter.NoOpStartSpan,
+		StartChildSpan:      adapter.NoOpStartChildSpan,
 	})
 	require.NoError(t, err)
 
@@ -322,13 +324,14 @@ func TestE2E_CacheFlow_Expiration(t *testing.T) {
 				VersionExpire:       24 * time.Hour,
 				LockDuration:        5 * time.Second,
 				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              &testutil.UnitTestLogger{},
+				LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
 				Semaphore:           adapter.NewSemaphore(10),
 				KeyGenerator:        key.KeyGenerator,
 				KeyVersionGenerator: key.KeyVersionGenerator,
 				VersionGenerator:    key.VersionGenerator,
 				LockGenerator:       key.LockGenerator,
+				StartSpan:           adapter.NoOpStartSpan,
+				StartChildSpan:      adapter.NoOpStartChildSpan,
 			})
 			require.NoError(t, err)
 			ctx := context.Background()
