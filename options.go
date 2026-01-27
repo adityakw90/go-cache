@@ -17,36 +17,38 @@ type Option func(*options)
 
 // options holds all cache configuration.
 type options struct {
-	keyPrefix           string
-	expireDefault       time.Duration
-	versionExpire       time.Duration
-	lockDuration        time.Duration
-	lockInterval        time.Duration
-	semaphoreSize       int
-	semaphore           adapter.Semaphore
-	keyGenerator        KeyGeneratorFunc
-	keyVersionGenerator KeyGeneratorFunc
-	versionGenerator    KeyGeneratorFunc
-	lockGenerator       KeyGeneratorFunc
-	getLogger           adapter.GetLogger
-	startSpan           adapter.StartSpan
-	startChildSpan      adapter.StartChildSpan
+	keyPrefix                 string
+	expireDefault             time.Duration
+	versionExpire             time.Duration
+	lockDuration              time.Duration
+	lockInterval              time.Duration
+	semaphoreSize             int
+	semaphore                 adapter.Semaphore
+	keyGenerator              KeyGeneratorFunc
+	keyVersionGenerator       KeyGeneratorFunc
+	keyHashedVersionGenerator KeyGeneratorFunc
+	versionGenerator          KeyGeneratorFunc
+	lockGenerator             KeyGeneratorFunc
+	getLogger                 adapter.GetLogger
+	startSpan                 adapter.StartSpan
+	startChildSpan            adapter.StartChildSpan
 }
 
 // defaultOptions returns default cache options.
 func defaultOptions() *options {
 	return &options{
-		keyPrefix:           "CACHE",
-		expireDefault:       time.Minute,
-		versionExpire:       30 * 24 * time.Hour, // 30 days
-		lockDuration:        time.Minute,
-		lockInterval:        100 * time.Millisecond,
-		semaphoreSize:       10,
-		semaphore:           nil, // Will be created from semaphoreSize
-		keyGenerator:        key.KeyGenerator,
-		keyVersionGenerator: key.KeyVersionGenerator,
-		versionGenerator:    key.VersionGenerator,
-		lockGenerator:       key.LockGenerator,
+		keyPrefix:                 "CACHE",
+		expireDefault:             time.Minute,
+		versionExpire:             30 * 24 * time.Hour, // 30 days
+		lockDuration:              time.Minute,
+		lockInterval:              100 * time.Millisecond,
+		semaphoreSize:             10,
+		semaphore:                 nil, // Will be created from semaphoreSize
+		keyGenerator:              key.KeyGenerator,
+		keyVersionGenerator:       key.KeyVersionGenerator,
+		keyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		versionGenerator:          key.VersionGenerator,
+		lockGenerator:             key.LockGenerator,
 	}
 }
 
@@ -118,6 +120,15 @@ func WithKeyVersionGenerator(fn KeyGeneratorFunc) Option {
 	return func(o *options) {
 		if fn != nil {
 			o.keyVersionGenerator = fn
+		}
+	}
+}
+
+// WithKeyHashedVersionGenerator sets a custom hashed versioned key generator function.
+func WithKeyHashedVersionGenerator(fn KeyGeneratorFunc) Option {
+	return func(o *options) {
+		if fn != nil {
+			o.keyHashedVersionGenerator = fn
 		}
 	}
 }

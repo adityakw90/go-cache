@@ -36,7 +36,7 @@ func TestNewCache(t *testing.T) {
 				fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
 					return "test", nil
 				}
-				cachedFn := cache.Cached("test", 1*time.Minute, false, "")(fn, nil)
+				cachedFn := cache.Cached("test", 1*time.Minute, false, "")(fn, nil, true)
 				var result string
 				_, callErr := cachedFn(&result, ctx, "arg1")
 				assert.NoError(t, callErr)
@@ -103,7 +103,7 @@ func TestNewCache_WithOptions(t *testing.T) {
 				fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
 					return "test", nil
 				}
-				cachedFn := cache.Cached("test", 1*time.Minute, false, "")(fn, nil)
+				cachedFn := cache.Cached("test", 1*time.Minute, false, "")(fn, nil, true)
 				var result string
 				_, callErr := cachedFn(&result, ctx, "arg1")
 				assert.NoError(t, callErr)

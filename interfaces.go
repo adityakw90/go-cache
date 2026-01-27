@@ -37,8 +37,9 @@ type Cache interface {
 	//   - ttl: can be a time.Duration, a function(result, args) time.Duration, or use default
 	//   - versioning: if true, enables cache versioning for automatic invalidation
 	//   - prefix: optional key prefix, uses default if empty
+	//   - useHashKey: if true, uses a hashed version of the key
 	// Returns a decorator function that wraps the target function.
-	Cached(keyName string, ttl interface{}, versioning bool, prefix string) func(fn func(ctx context.Context, args ...interface{}) (interface{}, error), customKeyFunc key.CustomKeyFunction) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error)
+	Cached(keyName string, ttl interface{}, versioning bool, prefix string) func(fn func(ctx context.Context, args ...interface{}) (interface{}, error), customKeyFunc key.CustomKeyFunction, useHashKey bool) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error)
 }
 
 // re-export types from adapter package for convenience.

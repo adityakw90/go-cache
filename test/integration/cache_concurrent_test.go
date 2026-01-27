@@ -52,19 +52,20 @@ func TestCache_Cached_Concurrent_WriteLock(t *testing.T) {
 			defer client.Close()
 
 			c, err := cache.NewCache(client, cache.Options{
-				KeyPrefix:           "test",
-				ExpireDefault:       5 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        50 * time.Millisecond,
-				StartSpan:           adapter.NoOpStartSpan,
-				StartChildSpan:      adapter.NoOpStartChildSpan,
-				LogProvider:         adapter.GetNoOpLogger,
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				KeyPrefix:                 "test",
+				ExpireDefault:             5 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              50 * time.Millisecond,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -82,7 +83,7 @@ func TestCache_Cached_Concurrent_WriteLock(t *testing.T) {
 				5*time.Minute,
 				false,
 				"test",
-			)(fn, nil)
+			)(fn, nil, true)
 
 			results := make(chan string, tt.numGoroutines)
 			errors := make(chan error, tt.numGoroutines)
@@ -149,19 +150,20 @@ func TestCache_Cached_Concurrent_WriteLock_Timeout(t *testing.T) {
 	defer client.Close()
 
 	c, err := cache.NewCache(client, cache.Options{
-		KeyPrefix:           "test",
-		ExpireDefault:       5 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        100 * time.Millisecond,
-		LockInterval:        10 * time.Millisecond,
-		StartSpan:           adapter.NoOpStartSpan,
-		StartChildSpan:      adapter.NoOpStartChildSpan,
-		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		KeyPrefix:                 "test",
+		ExpireDefault:             5 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              100 * time.Millisecond,
+		LockInterval:              10 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -180,7 +182,7 @@ func TestCache_Cached_Concurrent_WriteLock_Timeout(t *testing.T) {
 		5*time.Minute,
 		false,
 		"test",
-	)(fn, nil)
+	)(fn, nil, true)
 
 	// Test with very short lock timeout - should fallback to direct execution
 	results := make(chan string, 10)
@@ -224,19 +226,20 @@ func TestCache_Cached_Concurrent_Versioning(t *testing.T) {
 	defer client.Close()
 
 	c, err := cache.NewCache(client, cache.Options{
-		KeyPrefix:           "test",
-		ExpireDefault:       5 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        50 * time.Millisecond,
-		StartSpan:           adapter.NoOpStartSpan,
-		StartChildSpan:      adapter.NoOpStartChildSpan,
-		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		KeyPrefix:                 "test",
+		ExpireDefault:             5 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              50 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -254,7 +257,7 @@ func TestCache_Cached_Concurrent_Versioning(t *testing.T) {
 		5*time.Minute,
 		true, // Enable versioning
 		"test",
-	)(fn, nil)
+	)(fn, nil, true)
 
 	const numGoroutines = 5
 	results := make(chan string, numGoroutines)

@@ -42,7 +42,6 @@ func (c *Cache) getCacheVersion(
 	namespace string,
 	prefix string,
 	versioning bool,
-	logger adapter.Logger,
 ) (int, error) {
 	if !versioning {
 		return 0, nil
@@ -53,62 +52,64 @@ func (c *Cache) getCacheVersion(
 		c.VersionGenerator, c.VersionExpire, namespace, prefix,
 	)
 	if err != nil {
-		logger.Info("failed to get cache version", map[string]interface{}{
-			"error": err.Error(),
-		})
-		return 0, err
+		return 0, fmt.Errorf("failed to get cache version: %w", err)
 	}
 
 	return version, nil
 }
 
 // generateCacheKey creates a cache key from the namespace, version, and hash of arguments.
+// When useHashKey is true, it uses KeyHashedVersionGenerator which includes the key in the output.
+// When useHashKey is false, it uses KeyVersionGenerator which produces a simpler key format.
 func (c *Cache) generateCacheKey(
-	ctx context.Context,
 	prefix string,
 	namespace string,
 	version int,
 	args []interface{},
-	logger adapter.Logger,
+	useHashKey bool,
 ) (string, error) {
 	hashKey := hash.CacheKey(namespace, args)
 
-	key, err := c.KeyVersionGenerator(map[string]string{
-		"prefix":    prefix,
-		"namespace": namespace,
-		"version":   strconv.Itoa(version),
-		"key":       hashKey,
-	})
-	if err != nil {
-		logger.Error("error generating cache key", map[string]interface{}{
-			"error": err.Error(),
+	var cacheKey string
+	var err error
+
+	if useHashKey {
+		// Use KeyHashedVersionGenerator which includes the key in the output
+		// Format: {prefix}:{namespace}:v{version}-{key}.gob
+		cacheKey, err = c.KeyHashedVersionGenerator(map[string]string{
+			"prefix":    prefix,
+			"namespace": namespace,
+			"version":   strconv.Itoa(version),
+			"key":       hashKey,
 		})
-		return "", err
+	} else {
+		// Use KeyVersionGenerator which produces a simpler key format
+		// Format: {prefix}:{namespace}:v{version}.gob
+		cacheKey, err = c.KeyVersionGenerator(map[string]string{
+			"prefix":    prefix,
+			"namespace": namespace,
+			"version":   strconv.Itoa(version),
+		})
 	}
 
-	logger.Debug("cache key generated", map[string]interface{}{
-		"key": key,
-	})
+	if err != nil {
+		return "", fmt.Errorf("error generating cache key: %w", err)
+	}
 
-	return key, nil
+	return cacheKey, nil
 }
 
 // generateLockKey creates a lock key for the given namespace.
 func (c *Cache) generateLockKey(
-	ctx context.Context,
 	prefix string,
 	namespace string,
-	logger adapter.Logger,
 ) (string, error) {
 	lockKey, err := c.LockGenerator(map[string]string{
 		"prefix":    prefix,
 		"namespace": namespace,
 	})
 	if err != nil {
-		logger.Error("error generating lock key", map[string]interface{}{
-			"error": err.Error(),
-		})
-		return "", err
+		return "", fmt.Errorf("error generating lock key: %w", err)
 	}
 
 	return lockKey, nil
@@ -221,6 +222,7 @@ func (c *Cache) Cached(
 ) func(
 	fn func(ctx context.Context, args ...interface{}) (interface{}, error),
 	customKeyFunc key.CustomKeyFunction,
+	useHashKey bool,
 ) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 	// Set default prefix if not provided
 	if prefix == "" {
@@ -233,6 +235,7 @@ func (c *Cache) Cached(
 	return func(
 		fn func(ctx context.Context, args ...interface{}) (interface{}, error),
 		customKeyFunc key.CustomKeyFunction,
+		useHashKey bool,
 	) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error) {
 		// resultType is a pointer to the result of the function
 		if customKeyFunc != nil {
@@ -255,9 +258,12 @@ func (c *Cache) Cached(
 			})
 
 			// Get cache version if versioning is enabled
-			version, err := c.getCacheVersion(ctx, namespace, prefix, versioning, logger)
+			version, err := c.getCacheVersion(ctx, namespace, prefix, versioning)
 			if err != nil {
 				// Fall back to executing the function
+				logger.Error("error getting cache version", map[string]interface{}{
+					"error": err.Error(),
+				})
 				return fn(ctx, args...)
 			}
 
@@ -266,16 +272,22 @@ func (c *Cache) Cached(
 			})
 
 			// Generate cache key
-			cacheKey, err := c.generateCacheKey(ctx, prefix, namespace, version, args, logger)
+			cacheKey, err := c.generateCacheKey(prefix, namespace, version, args, useHashKey)
 			if err != nil {
 				// Fall back to executing the function
+				logger.Error("error generating cache key", map[string]interface{}{
+					"error": err.Error(),
+				})
 				return fn(ctx, args...)
 			}
 
 			// Generate lock key early (needed for cache miss handling)
-			lockKey, err := c.generateLockKey(ctx, prefix, namespace, logger)
+			lockKey, err := c.generateLockKey(prefix, namespace)
 			if err != nil {
 				// Fall back to executing the function
+				logger.Error("error generating lock key", map[string]interface{}{
+					"error": err.Error(),
+				})
 				return fn(ctx, args...)
 			}
 

@@ -17,19 +17,20 @@ import (
 func setupCache(t *testing.T) (*cache.Cache, *redis.Client) {
 	client := testutil.CreateTestRedisClient(t)
 	c, err := cache.NewCache(client, cache.Options{
-		KeyPrefix:           "test",
-		ExpireDefault:       1 * time.Hour,
-		VersionExpire:       24 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        100 * time.Millisecond,
-		StartSpan:           adapter.NoOpStartSpan,
-		StartChildSpan:      adapter.NoOpStartChildSpan,
-		LogProvider:         adapter.GetNoOpLogger,
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		KeyPrefix:                 "test",
+		ExpireDefault:             1 * time.Hour,
+		VersionExpire:             24 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              100 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               adapter.GetNoOpLogger,
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 	return c, client
@@ -59,7 +60,7 @@ func TestCache_Cached_WithoutVersioning(t *testing.T) {
 			},
 			keyFunc: nil,
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int, keyFunc key.CustomKeyFunction) {
-				cachedFn := c.Cached(keyName, ttl, false, "")(fn, keyFunc)
+				cachedFn := c.Cached(keyName, ttl, false, "")(fn, keyFunc, true)
 				var resultType map[string]interface{}
 
 				result, err := cachedFn(&resultType, ctx, "arg1", "arg2")
@@ -89,7 +90,7 @@ func TestCache_Cached_WithoutVersioning(t *testing.T) {
 			},
 			keyFunc: nil,
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int, keyFunc key.CustomKeyFunction) {
-				cachedFn := c.Cached(keyName, ttl, false, "")(fn, keyFunc)
+				cachedFn := c.Cached(keyName, ttl, false, "")(fn, keyFunc, true)
 				var resultType string
 
 				result, err := cachedFn(&resultType, ctx, "arg1")
@@ -116,7 +117,7 @@ func TestCache_Cached_WithoutVersioning(t *testing.T) {
 			},
 			keyFunc: nil,
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int, keyFunc key.CustomKeyFunction) {
-				cachedFn := c.Cached(keyName, ttl, false, "")(fn, keyFunc)
+				cachedFn := c.Cached(keyName, ttl, false, "")(fn, keyFunc, true)
 				var resultType interface{}
 
 				_, err := cachedFn(&resultType, ctx, "arg1")
@@ -162,7 +163,7 @@ func TestCache_Cached_WithVersioning(t *testing.T) {
 				return fn, &callCount
 			},
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int) {
-				cachedFn := c.Cached(keyName, ttl, true, "")(fn, nil)
+				cachedFn := c.Cached(keyName, ttl, true, "")(fn, nil, true)
 				var resultType map[string]interface{}
 
 				result, err := cachedFn(&resultType, ctx, "arg1")
@@ -228,7 +229,7 @@ func TestCache_CleanCache(t *testing.T) {
 			},
 			keyFunc: nil,
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int, keyFunc key.CustomKeyFunction) {
-				cachedFn := c.Cached(keyName, ttl, true, "")(fn, keyFunc)
+				cachedFn := c.Cached(keyName, ttl, true, "")(fn, keyFunc, true)
 				var resultType string
 
 				result, err := cachedFn(&resultType, ctx, "arg1")
@@ -280,7 +281,7 @@ func TestCache_CleanCache(t *testing.T) {
 				return customKeyFunc
 			}(),
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int, keyFunc key.CustomKeyFunction) {
-				cachedFn := c.Cached(keyName, ttl, true, "")(fn, keyFunc)
+				cachedFn := c.Cached(keyName, ttl, true, "")(fn, keyFunc, true)
 				var resultType string
 
 				_, err := cachedFn(&resultType, ctx, "user123")
@@ -318,7 +319,7 @@ func TestCache_CleanCache(t *testing.T) {
 			},
 			keyFunc: nil,
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl time.Duration, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int, keyFunc key.CustomKeyFunction) {
-				cachedFn := c.Cached(keyName, ttl, true, "")(fn, keyFunc)
+				cachedFn := c.Cached(keyName, ttl, true, "")(fn, keyFunc, true)
 				var resultType string
 
 				_, err := cachedFn(&resultType, ctx, "arg1")
@@ -380,7 +381,7 @@ func TestCache_TTL(t *testing.T) {
 				return fn, &callCount
 			},
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl interface{}, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int) {
-				cachedFn := c.Cached(keyName, ttl, false, "")(fn, nil)
+				cachedFn := c.Cached(keyName, ttl, false, "")(fn, nil, true)
 				var resultType string
 
 				_, err := cachedFn(&resultType, ctx, "arg1")
@@ -418,7 +419,7 @@ func TestCache_TTL(t *testing.T) {
 				return fn, &callCount
 			},
 			runTest: func(t *testing.T, c *cache.Cache, ctx context.Context, keyName string, ttl interface{}, fn func(context.Context, ...interface{}) (interface{}, error), callCount *int) {
-				cachedFn := c.Cached(keyName, ttl, false, "")(fn, nil)
+				cachedFn := c.Cached(keyName, ttl, false, "")(fn, nil, true)
 				var resultType string
 
 				_, err := cachedFn(&resultType, ctx, "short")

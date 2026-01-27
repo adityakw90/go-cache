@@ -48,19 +48,20 @@ func NewCache(redisClient *redis.Client, opts ...Option) (Cache, error) {
 
 	// Convert to internal options, converting KeyGeneratorFunc types
 	internalOpts := internalcache.Options{
-		KeyPrefix:           rootOpts.keyPrefix,
-		ExpireDefault:       rootOpts.expireDefault,
-		VersionExpire:       rootOpts.versionExpire,
-		LockDuration:        rootOpts.lockDuration,
-		LockInterval:        rootOpts.lockInterval,
-		Semaphore:           semaphore,
-		KeyGenerator:        convertKeyGeneratorFunc(rootOpts.keyGenerator),
-		KeyVersionGenerator: convertKeyGeneratorFunc(rootOpts.keyVersionGenerator),
-		VersionGenerator:    convertKeyGeneratorFunc(rootOpts.versionGenerator),
-		LockGenerator:       convertKeyGeneratorFunc(rootOpts.lockGenerator),
-		LogProvider:         logProvider,
-		StartSpan:           startSpan,
-		StartChildSpan:      startChildSpan,
+		KeyPrefix:                 rootOpts.keyPrefix,
+		ExpireDefault:             rootOpts.expireDefault,
+		VersionExpire:             rootOpts.versionExpire,
+		LockDuration:              rootOpts.lockDuration,
+		LockInterval:              rootOpts.lockInterval,
+		Semaphore:                 semaphore,
+		KeyGenerator:              convertKeyGeneratorFunc(rootOpts.keyGenerator),
+		KeyVersionGenerator:       convertKeyGeneratorFunc(rootOpts.keyVersionGenerator),
+		KeyHashedVersionGenerator: convertKeyGeneratorFunc(rootOpts.keyHashedVersionGenerator),
+		VersionGenerator:          convertKeyGeneratorFunc(rootOpts.versionGenerator),
+		LockGenerator:             convertKeyGeneratorFunc(rootOpts.lockGenerator),
+		LogProvider:               logProvider,
+		StartSpan:                 startSpan,
+		StartChildSpan:            startChildSpan,
 	}
 
 	impl, err := internalcache.NewCache(redisClient, internalOpts)

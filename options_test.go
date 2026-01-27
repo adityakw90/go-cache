@@ -421,12 +421,11 @@ func TestDefaultKeyVersionGenerator(t *testing.T) {
 				"prefix":    "myapp",
 				"namespace": "getUser",
 				"version":   "1",
-				"key":       "abc123",
 			},
-			wantResult: "myapp:getUser:v1-abc123.gob",
+			wantResult: "myapp:getUser:v1.gob",
 			checkFunc: func(t *testing.T, result string, err error) {
 				assert.NoError(t, err)
-				assert.Equal(t, "myapp:getUser:v1-abc123.gob", result)
+				assert.Equal(t, "myapp:getUser:v1.gob", result)
 			},
 		},
 	}

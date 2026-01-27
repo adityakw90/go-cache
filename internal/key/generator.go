@@ -29,6 +29,24 @@ func KeyVersionGenerator(data map[string]string) (string, error) {
 	if !ok {
 		return "", ErrKeyGeneratorParamsVersionRequired
 	}
+	return prefix + ":" + namespace + ":v" + version + ".gob", nil
+}
+
+// KeyHashedVersionGenerator generates a hashed versioned cache key.
+// Template: {prefix}:{namespace}:v{version}-{key}.gob
+func KeyHashedVersionGenerator(data map[string]string) (string, error) {
+	prefix, ok := data["prefix"]
+	if !ok {
+		return "", ErrKeyGeneratorParamsPrefixRequired
+	}
+	namespace, ok := data["namespace"]
+	if !ok {
+		return "", ErrKeyGeneratorParamsNamespaceRequired
+	}
+	version, ok := data["version"]
+	if !ok {
+		return "", ErrKeyGeneratorParamsVersionRequired
+	}
 	key, ok := data["key"]
 	if !ok {
 		return "", ErrKeyGeneratorParamsKeyRequired

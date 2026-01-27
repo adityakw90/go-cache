@@ -86,19 +86,20 @@ func TestCache_Operations_Get(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				StartSpan:           adapter.NoOpStartSpan,
-				StartChildSpan:      adapter.NoOpStartChildSpan,
-				LogProvider:         adapter.GetNoOpLogger,
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyPrefix:           "test",
-				ExpireDefault:       5 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        100 * time.Millisecond,
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyPrefix:                 "test",
+				ExpireDefault:             5 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              100 * time.Millisecond,
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -194,19 +195,20 @@ func TestCache_Operations_Set(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				StartSpan:           adapter.NoOpStartSpan,
-				StartChildSpan:      adapter.NoOpStartChildSpan,
-				LogProvider:         adapter.GetNoOpLogger,
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyPrefix:           "test",
-				ExpireDefault:       5 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        100 * time.Millisecond,
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyPrefix:                 "test",
+				ExpireDefault:             5 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              100 * time.Millisecond,
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -237,19 +239,20 @@ func TestCache_Operations_GetSet_Integration(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		StartSpan:           adapter.NoOpStartSpan,
-		StartChildSpan:      adapter.NoOpStartChildSpan,
-		LogProvider:         func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyPrefix:           "test",
-		ExpireDefault:       5 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        100 * time.Millisecond,
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyPrefix:                 "test",
+		ExpireDefault:             5 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              100 * time.Millisecond,
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 
