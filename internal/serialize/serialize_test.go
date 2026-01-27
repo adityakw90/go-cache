@@ -73,6 +73,21 @@ func TestSerialize_Serialize(t *testing.T) {
 			},
 		},
 		{
+			name: "map[string]interface{} value",
+			value: map[string]interface{}{
+				"a": 1,
+				"b": 2,
+				"c": []int{1, 2, 3},
+			},
+			wantErr:     false,
+			wantErrType: nil,
+			wantErrMsg:  "",
+			checkFunc: func(t *testing.T, data []byte, original interface{}) {
+				assert.NotNil(t, data)
+				assert.Greater(t, len(data), 0)
+			},
+		},
+		{
 			name:        "nil value",
 			value:       nil,
 			wantErr:     true,

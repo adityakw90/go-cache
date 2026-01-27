@@ -48,11 +48,16 @@ func TestE2E_CacheFlow_FullLifecycle(t *testing.T) {
 	callCount := 0
 
 	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		// result must be pointer to avoid state pollution
 		callCount++
-		return map[string]interface{}{
+		argsListString := []string{
+			args[0].(string),
+			args[1].(string),
+		}
+		return &map[string]interface{}{
 			"result":    "success",
 			"callCount": callCount,
-			"args":      args,
+			"args":      argsListString,
 		}, nil
 	}
 
@@ -68,84 +73,289 @@ func TestE2E_CacheFlow_FullLifecycle(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	cachedFn := c.Cached(keyName, ttl, true, "")(fn, customKeyFunc, true)
-
-	var resultType map[string]interface{}
+	cachedHashedVersionedFn := c.Cached(keyName, ttl, true, "")(fn, customKeyFunc, true)
+	cachedVersionedFn := c.Cached(keyName, ttl, true, "")(fn, customKeyFunc, false)
+	cachedHashedFn := c.Cached(keyName, ttl, false, "")(fn, customKeyFunc, true)
+	cachedFn := c.Cached(keyName, ttl, false, "")(fn, customKeyFunc, false)
 
 	tests := []struct {
 		name           string
 		args           []interface{}
+		cachedFn       func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error)
 		waitBeforeCall time.Duration
-		setup          func() int
-		validate       func(t *testing.T, result interface{}, err error, prevCallCount int)
+		setup          func()
+		validate       func(t *testing.T, result interface{}, err error)
 	}{
 		{
 			name:           "first call - cache miss",
 			args:           []interface{}{"user123", "param1"},
+			cachedFn:       cachedHashedVersionedFn,
 			waitBeforeCall: 0,
-			setup:          func() int { return callCount },
-			validate: func(t *testing.T, result interface{}, err error, prevCallCount int) {
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
 				require.NoError(t, err)
 				assert.Equal(t, 1, callCount)
-				resultMap := result.(map[string]interface{})
-				assert.Equal(t, "success", resultMap["result"])
-				assert.Equal(t, 1, resultMap["callCount"])
+				resultMap := result.(*map[string]interface{})
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 1, (*resultMap)["callCount"])
+
+				// expected version
+				versionKey := "e2e_test_full:user123:version"
+				expectedVersion := "1"
+				version, err := client.Get(ctx, versionKey).Result()
+				require.NoError(t, err)
+				assert.Equal(t, expectedVersion, version, "version should be 1")
+
+				// expected cache data and use hardcoded hash value to make sure the test is deterministic
+				cacheKey := "e2e_test_full:user123:v1-f4090ccea693930796fba4d3fcba0147.gob"
+				expectedCacheData := map[string]interface{}{
+					"result":    "success",
+					"callCount": 1,
+					"args":      []string{"user123", "param1"},
+				}
+				cacheData, err := client.Get(ctx, cacheKey).Bytes()
+				require.NoError(t, err)
+				var actualCacheData map[string]interface{}
+				err = serialize.Deserialize(cacheData, &actualCacheData)
+				require.NoError(t, err)
+				assert.Equal(t, expectedCacheData, actualCacheData, "cache data should be equal")
 			},
 		},
 		{
 			name:           "second call - cache hit",
 			args:           []interface{}{"user123", "param1"},
+			cachedFn:       cachedHashedVersionedFn,
 			waitBeforeCall: 500 * time.Millisecond,
-			setup:          func() int { return callCount },
-			validate: func(t *testing.T, result interface{}, err error, prevCallCount int) {
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
 				require.NoError(t, err)
-				assert.LessOrEqual(t, callCount, prevCallCount+1)
-				resultMap, ok := result.(map[string]interface{})
+				assert.Equal(t, 1, callCount, "callCount should be 1")
+				resultMap, ok := result.(*map[string]interface{})
 				require.True(t, ok, "result should be a map[string]interface{}")
-				assert.Equal(t, "success", resultMap["result"])
+				assert.Equal(t, "success", (*resultMap)["result"])
 			},
 		},
 		{
 			name:           "different user - cache miss",
 			args:           []interface{}{"user456", "param1"},
+			cachedFn:       cachedHashedVersionedFn,
 			waitBeforeCall: 0,
-			setup:          func() int { return callCount },
-			validate: func(t *testing.T, result interface{}, err error, prevCallCount int) {
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
 				require.NoError(t, err)
-				assert.Equal(t, prevCallCount+1, callCount)
-				resultMap := result.(map[string]interface{})
-				assert.Equal(t, "success", resultMap["result"])
+				assert.Equal(t, 2, callCount)
+				resultMap := result.(*map[string]interface{})
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 2, (*resultMap)["callCount"])
+
+				// expected version
+				versionKey := "e2e_test_full:user456:version"
+				expectedVersion := "1"
+				version, err := client.Get(ctx, versionKey).Result()
+				require.NoError(t, err)
+				assert.Equal(t, expectedVersion, version, "version should be 1")
+
+				// expected cache data and use hardcoded hash value to make sure the test is deterministic
+				cacheKey := "e2e_test_full:user456:v1-585d04d8ffcf93141ca460eec30acbe9.gob"
+				expectedCacheData := map[string]interface{}{
+					"result":    "success",
+					"callCount": 2,
+					"args":      []string{"user456", "param1"},
+				}
+				cacheData, err := client.Get(ctx, cacheKey).Bytes()
+				require.NoError(t, err)
+				var actualCacheData map[string]interface{}
+				err = serialize.Deserialize(cacheData, &actualCacheData)
+				require.NoError(t, err)
+				assert.Equal(t, expectedCacheData, actualCacheData, "cache data should be equal")
 			},
 		},
 		{
 			name:           "clean cache for user123",
 			args:           []interface{}{"user123", "param1"},
+			cachedFn:       cachedHashedVersionedFn,
 			waitBeforeCall: 200 * time.Millisecond,
-			setup: func() int {
+			setup: func() {
 				err := c.CleanCache(ctx, keyName, map[string]interface{}{
 					"user_id": "user123",
 				}, nil, true, nil)
 				require.NoError(t, err)
-				return callCount
 			},
-			validate: func(t *testing.T, result interface{}, err error, prevCallCount int) {
+			validate: func(t *testing.T, result interface{}, err error) {
 				require.NoError(t, err)
-				assert.Equal(t, prevCallCount+1, callCount)
-				resultMap := result.(map[string]interface{})
-				assert.Equal(t, "success", resultMap["result"])
+				assert.Equal(t, 3, callCount)
+				resultMap := result.(*map[string]interface{})
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 3, (*resultMap)["callCount"])
+
+				// expected version
+				versionKey := "e2e_test_full:user123:version"
+				expectedVersion := "2"
+				version, err := client.Get(ctx, versionKey).Result()
+				require.NoError(t, err)
+				assert.Equal(t, expectedVersion, version, "version should be 1")
+
+				// expected cache data and use hardcoded hash value to make sure the test is deterministic
+				cacheKey := "e2e_test_full:user123:v2-f4090ccea693930796fba4d3fcba0147.gob"
+				expectedCacheData := map[string]interface{}{
+					"result":    "success",
+					"callCount": 3,
+					"args":      []string{"user123", "param1"},
+				}
+				cacheData, err := client.Get(ctx, cacheKey).Bytes()
+				require.NoError(t, err)
+				var actualCacheData map[string]interface{}
+				err = serialize.Deserialize(cacheData, &actualCacheData)
+				require.NoError(t, err)
+				assert.Equal(t, expectedCacheData, actualCacheData, "cache data should be equal")
 			},
 		},
 		{
 			name:           "user456 still cached",
 			args:           []interface{}{"user456", "param1"},
+			cachedFn:       cachedHashedVersionedFn,
 			waitBeforeCall: 0,
-			setup:          func() int { return callCount },
-			validate: func(t *testing.T, result interface{}, err error, prevCallCount int) {
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
 				require.NoError(t, err)
-				assert.LessOrEqual(t, callCount, prevCallCount+1, "callCount should not increase on cache hit")
-				resultMap, ok := result.(map[string]interface{})
+				assert.Equal(t, 3, callCount, "callCount should be 3") // total call count
+				resultMap, ok := result.(*map[string]interface{})
 				require.True(t, ok, "result should be a map")
-				assert.Equal(t, "success", resultMap["result"])
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 2, (*resultMap)["callCount"]) // its from cached data
+			},
+		},
+		{
+			name:           "user123 not hashed - cache miss",
+			args:           []interface{}{"user123", "param1"},
+			cachedFn:       cachedVersionedFn,
+			waitBeforeCall: 0,
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, 4, callCount)
+				resultMap := result.(*map[string]interface{})
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 4, (*resultMap)["callCount"])
+
+				// expected version
+				versionKey := "e2e_test_full:user123:version"
+				expectedVersion := "2"
+				version, err := client.Get(ctx, versionKey).Result()
+				require.NoError(t, err)
+				assert.Equal(t, expectedVersion, version, "version should be 2")
+
+				// expected cache data and use hardcoded hash value to make sure the test is deterministic
+				cacheKey := "e2e_test_full:user123:v2.gob"
+				expectedCacheData := map[string]interface{}{
+					"result":    "success",
+					"callCount": 4,
+					"args":      []string{"user123", "param1"},
+				}
+				cacheData, err := client.Get(ctx, cacheKey).Bytes()
+				require.NoError(t, err)
+				var actualCacheData map[string]interface{}
+				err = serialize.Deserialize(cacheData, &actualCacheData)
+				require.NoError(t, err)
+				assert.Equal(t, expectedCacheData, actualCacheData, "cache data should be equal")
+			},
+		},
+		{
+			name:           "user123 not hashed - cache hit",
+			args:           []interface{}{"user123", "param1"},
+			cachedFn:       cachedVersionedFn,
+			waitBeforeCall: 500 * time.Millisecond,
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, 4, callCount, "callCount should be 4")
+				resultMap, ok := result.(*map[string]interface{})
+				require.True(t, ok, "result should be a map[string]interface{}")
+				assert.Equal(t, "success", (*resultMap)["result"])
+			},
+		},
+		{
+			name:           "user789 not versioned - cache miss",
+			args:           []interface{}{"user789", "param1"},
+			cachedFn:       cachedHashedFn,
+			waitBeforeCall: 0,
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, 5, callCount)
+				resultMap := result.(*map[string]interface{})
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 5, (*resultMap)["callCount"])
+
+				// expected cache data and use hardcoded hash value to make sure the test is deterministic
+				cacheKey := "e2e_test_full:user789:v0-ddf19f31c5a9f5783bcfa335ba24f374.gob"
+				expectedCacheData := map[string]interface{}{
+					"result":    "success",
+					"callCount": 5,
+					"args":      []string{"user789", "param1"},
+				}
+				cacheData, err := client.Get(ctx, cacheKey).Bytes()
+				require.NoError(t, err)
+				var actualCacheData map[string]interface{}
+				err = serialize.Deserialize(cacheData, &actualCacheData)
+				require.NoError(t, err)
+				assert.Equal(t, expectedCacheData, actualCacheData, "cache data should be equal")
+			},
+		},
+		{
+			name:           "user789 not versioned - cache hit",
+			args:           []interface{}{"user789", "param1"},
+			cachedFn:       cachedHashedFn,
+			waitBeforeCall: 500 * time.Millisecond,
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, 5, callCount, "callCount should be 5")
+				resultMap, ok := result.(*map[string]interface{})
+				require.True(t, ok, "result should be a map[string]interface{}")
+				assert.Equal(t, "success", (*resultMap)["result"])
+			},
+		},
+		{
+			name:           "user123456 not versioned not hashed - cache miss",
+			args:           []interface{}{"user123456", "param1"},
+			cachedFn:       cachedFn,
+			waitBeforeCall: 0,
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, 6, callCount)
+				resultMap := result.(*map[string]interface{})
+				assert.Equal(t, "success", (*resultMap)["result"])
+				assert.Equal(t, 6, (*resultMap)["callCount"])
+
+				// expected cache data and use hardcoded hash value to make sure the test is deterministic
+				cacheKey := "e2e_test_full:user123456:v0.gob"
+				expectedCacheData := map[string]interface{}{
+					"result":    "success",
+					"callCount": 6,
+					"args":      []string{"user123456", "param1"},
+				}
+				cacheData, err := client.Get(ctx, cacheKey).Bytes()
+				require.NoError(t, err)
+				var actualCacheData map[string]interface{}
+				err = serialize.Deserialize(cacheData, &actualCacheData)
+				require.NoError(t, err)
+				assert.Equal(t, expectedCacheData, actualCacheData, "cache data should be equal")
+			},
+		},
+		{
+			name:           "user123456 not versioned not hashed - cache hit",
+			args:           []interface{}{"user123456", "param1"},
+			cachedFn:       cachedFn,
+			waitBeforeCall: 500 * time.Millisecond,
+			setup:          func() {},
+			validate: func(t *testing.T, result interface{}, err error) {
+				require.NoError(t, err)
+				assert.Equal(t, 6, callCount, "callCount should be 6")
+				resultMap, ok := result.(*map[string]interface{})
+				require.True(t, ok, "result should be a map[string]interface{}")
+				assert.Equal(t, "success", (*resultMap)["result"])
 			},
 		},
 	}
@@ -155,9 +365,13 @@ func TestE2E_CacheFlow_FullLifecycle(t *testing.T) {
 			if tt.waitBeforeCall > 0 {
 				time.Sleep(tt.waitBeforeCall)
 			}
-			prevCallCount := tt.setup()
-			result, err := cachedFn(&resultType, ctx, tt.args...)
-			tt.validate(t, result, err, prevCallCount)
+			tt.setup()
+			var result interface{}
+			var err error
+			// Declare resultType inside each test to avoid state pollution
+			var resultType map[string]interface{}
+			result, err = tt.cachedFn(&resultType, ctx, tt.args...)
+			tt.validate(t, result, err)
 		})
 	}
 }
@@ -384,130 +598,6 @@ func TestE2E_CacheFlow_Expiration(t *testing.T) {
 
 			// Cleanup: remove test data to ensure test isolation
 			_ = client.Del(ctx, cacheKey).Err()
-		})
-	}
-}
-
-func TestE2E_KeyGenerator_Format(t *testing.T) {
-	tests := []struct {
-		name            string
-		useHashKey      bool
-		versioning      bool
-		args            []interface{}
-		wantPrefix      string
-		wantContains    []string // substrings that should be in the key
-		wantNotContains []string // substrings that should NOT be in the key
-	}{
-		{
-			name:            "non-hashed key format",
-			useHashKey:      false,
-			versioning:      false,
-			args:            []interface{}{"arg1"},
-			wantPrefix:      "e2e_key_format",
-			wantContains:    []string{"e2e_key_format", "testKey"},
-			wantNotContains: []string{"-"},
-		},
-		{
-			name:         "hashed key format includes hash",
-			useHashKey:   true,
-			versioning:   false,
-			args:         []interface{}{"arg1"},
-			wantPrefix:   "e2e_key_format",
-			wantContains: []string{"e2e_key_format", "testKey", "-"},
-		},
-		{
-			name:            "non-hashed key with versioning",
-			useHashKey:      false,
-			versioning:      true,
-			args:            []interface{}{"arg1"},
-			wantPrefix:      "e2e_key_format",
-			wantContains:    []string{"e2e_key_format", "testKey", "v"},
-			wantNotContains: []string{"-"},
-		},
-		{
-			name:         "hashed key with versioning",
-			useHashKey:   true,
-			versioning:   true,
-			args:         []interface{}{"arg1"},
-			wantPrefix:   "e2e_key_format",
-			wantContains: []string{"e2e_key_format", "testKey", "v"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client := testutil.CreateTestRedisClient(t)
-			defer client.Close()
-
-			c, err := cache.NewCache(client, cache.Options{
-				KeyPrefix:                 tt.wantPrefix,
-				ExpireDefault:             1 * time.Hour,
-				VersionExpire:             24 * time.Hour,
-				LockDuration:              5 * time.Second,
-				LockInterval:              100 * time.Millisecond,
-				LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
-				Semaphore:                 adapter.NewSemaphore(10),
-				KeyGenerator:              key.KeyGenerator,
-				KeyVersionGenerator:       key.KeyVersionGenerator,
-				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
-				VersionGenerator:          key.VersionGenerator,
-				LockGenerator:             key.LockGenerator,
-				StartSpan:                 adapter.NoOpStartSpan,
-				StartChildSpan:            adapter.NoOpStartChildSpan,
-			})
-			require.NoError(t, err)
-
-			ctx := context.Background()
-
-			fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
-				return "result", nil
-			}
-
-			cachedWrapper := c.Cached("testKey", 1*time.Minute, tt.versioning, "")
-			cachedFunc := cachedWrapper(fn, nil, tt.useHashKey)
-
-			var result string
-			_, err = cachedFunc(&result, ctx, tt.args...)
-			require.NoError(t, err)
-
-			// Get the actual key format from Redis to verify
-			// The key format depends on the generator used
-			namespace := "testKey"
-			version := 0
-			if tt.versioning {
-				version = 1
-			}
-
-			var expectedKey string
-			if tt.useHashKey {
-				// KeyHashedVersionGenerator format: {prefix}:{namespace}:v{version}-{key}.gob
-				hashKey := hash.CacheKey(namespace, tt.args)
-				expectedKey, err = c.KeyHashedVersionGenerator(map[string]string{
-					"prefix":    tt.wantPrefix,
-					"namespace": namespace,
-					"version":   fmt.Sprintf("%d", version),
-					"key":       hashKey,
-				})
-			} else {
-				// KeyVersionGenerator format: {prefix}:{namespace}:v{version}.gob
-				expectedKey, err = c.KeyVersionGenerator(map[string]string{
-					"prefix":    tt.wantPrefix,
-					"namespace": namespace,
-					"version":   fmt.Sprintf("%d", version),
-				})
-			}
-			require.NoError(t, err)
-
-			// Verify the key format matches expected pattern
-			assert.Contains(t, expectedKey, ".gob", "key should end with .gob extension")
-
-			for _, want := range tt.wantContains {
-				assert.Contains(t, expectedKey, want, "key should contain %s", want)
-			}
-
-			for _, notWant := range tt.wantNotContains {
-				assert.NotContains(t, expectedKey, notWant, "key should NOT contain %s", notWant)
-			}
 		})
 	}
 }
