@@ -193,7 +193,7 @@ func TestE2E_CacheFlow_FullLifecycle(t *testing.T) {
 				expectedVersion := "2"
 				version, err := client.Get(ctx, versionKey).Result()
 				require.NoError(t, err)
-				assert.Equal(t, expectedVersion, version, "version should be 1")
+				assert.Equal(t, expectedVersion, version, "version should be 2")
 
 				// expected cache data and use hardcoded hash value to make sure the test is deterministic
 				cacheKey := "e2e_test_full:user123:v2-f4090ccea693930796fba4d3fcba0147.gob"
