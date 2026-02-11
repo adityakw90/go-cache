@@ -68,12 +68,11 @@ func (c *Cache) generateCacheKey(
 	args []interface{},
 	useHashKey bool,
 ) (string, error) {
-	hashKey := hash.CacheKey(namespace, args)
-
 	var cacheKey string
 	var err error
 
 	if useHashKey {
+		hashKey := hash.CacheKey(namespace, args)
 		// Use KeyHashedVersionGenerator which includes the key in the output
 		// Format: {prefix}:{namespace}:v{version}-{key}.gob
 		cacheKey, err = c.KeyHashedVersionGenerator(map[string]string{
