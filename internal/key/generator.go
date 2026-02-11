@@ -15,7 +15,7 @@ func KeyGenerator(data map[string]string) (string, error) {
 }
 
 // KeyVersionGenerator generates a versioned cache key.
-// Template: {prefix}:{namespace}:v{version}-{key}.gob
+// Template: {prefix}:{namespace}:v{version}.gob
 func KeyVersionGenerator(data map[string]string) (string, error) {
 	prefix, ok := data["prefix"]
 	if !ok {
