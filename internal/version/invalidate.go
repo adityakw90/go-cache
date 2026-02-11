@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/redis/go-redis/v9"
 )
@@ -14,9 +14,10 @@ import (
 func InvalidateVersion(
 	ctx context.Context,
 	redisClient *redis.Client,
-	tracer adapter.Tracer,
-	logger adapter.Logger,
+	startSpan adapter.StartSpan,
+	startChildSpan adapter.StartChildSpan,
 	semaphore adapter.Semaphore,
+	getLogger func(ctx context.Context) adapter.Logger,
 	versionGenerator key.KeyGeneratorFunc,
 	versionExpire time.Duration,
 	keyPrefix string,
@@ -24,23 +25,26 @@ func InvalidateVersion(
 	prefix string,
 	getSession func() redis.Pipeliner,
 ) error {
-	if prefix == "" {
-		prefix = keyPrefix
-	}
-
-	ctx, cacheSpan := tracer.StartSpan(ctx, "cache.InvalidateVersion")
+	ctx, cacheSpan := startSpan(ctx, "cache.InvalidateVersion")
 	defer cacheSpan.End()
 
-	logger = logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := getLogger(ctx)
 
 	logger.Debug("invalidating version", map[string]interface{}{
 		"prefix":    prefix,
 		"namespace": namespace,
 	})
 
+	if prefix == "" {
+		prefix = keyPrefix
+	}
+
 	// Use pipeline for atomic operation
 	session := getSession()
-	_, err := IncrementCacheVersion(ctx, redisClient, tracer, logger, semaphore, versionGenerator, session, prefix, namespace, versionExpire)
+	_, err := IncrementCacheVersion(
+		ctx, redisClient, startSpan, startChildSpan, semaphore, getLogger,
+		versionGenerator, session, prefix, namespace, versionExpire,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to increment version: %w", err)
 	}

@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
@@ -93,17 +94,19 @@ func TestCache_RegisterCacheKey(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				ExpireDefault:       1 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				ExpireDefault:             1 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              100 * time.Millisecond,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -121,17 +124,19 @@ func TestCache_RegisterCacheKey_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		ExpireDefault:       1 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		ExpireDefault:             1 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              100 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -243,17 +248,19 @@ func TestCache_RegisterCustomKey(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				ExpireDefault:       1 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				ExpireDefault:             1 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              100 * time.Millisecond,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -271,17 +278,19 @@ func TestCache_RegisterCustomKey_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		ExpireDefault:       1 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		ExpireDefault:             1 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              100 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -376,17 +385,19 @@ func TestCache_GetCacheKeyUsage(t *testing.T) {
 			defer client.Close()
 
 			cache, err := NewCache(client, Options{
-				ExpireDefault:       1 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        100 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				ExpireDefault:             1 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              100 * time.Millisecond,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -404,17 +415,19 @@ func TestCache_GetCacheKeyUsage_Concurrent(t *testing.T) {
 	defer client.Close()
 
 	cache, err := NewCache(client, Options{
-		ExpireDefault:       1 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        100 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		ExpireDefault:             1 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              100 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 

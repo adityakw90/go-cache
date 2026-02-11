@@ -6,5 +6,4 @@ type LockData struct {
 	Token    string
 	Acquired bool
 	Released bool
-	Error    error
 }

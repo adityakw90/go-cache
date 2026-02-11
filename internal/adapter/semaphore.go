@@ -18,3 +18,13 @@ func (s *semaphore) Acquire() {
 func (s *semaphore) Release() {
 	<-s.sem
 }
+
+// NewSemaphore creates a new semaphore with the given size.
+func NewSemaphore(size int) *semaphore {
+	if size <= 0 {
+		size = 1
+	}
+	return &semaphore{
+		sem: make(chan struct{}, size),
+	}
+}

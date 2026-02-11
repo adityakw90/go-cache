@@ -19,11 +19,11 @@ func (c *Cache) CleanCache(
 	listLockedKey *[]string,
 ) error {
 	// Start a tracing span
-	ctx, cacheSpan := c.Tracer.StartSpan(ctx, "cache.CleanCache")
+	ctx, cacheSpan := c.StartSpan(ctx, "cache.CleanCache")
 	defer cacheSpan.End()
 
 	// Get logger with span context
-	logger := c.Logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := c.LogProvider(ctx)
 
 	// Find all cache key usages for the provided key
 	listPrefix := c.getCacheKeyUsage(key)
@@ -72,7 +72,7 @@ func (c *Cache) CleanCache(
 				}
 				*listLockedKey = append(*listLockedKey, lockKey)
 				// TODO: update to session pipeline after version.IncrementCacheVersion is updated to return the command instead of the result
-				if _, err := version.IncrementCacheVersion(ctx, c.RedisClient, c.Tracer, c.Logger, c.Semaphore, c.VersionGenerator, session, prefix, namespace, c.VersionExpire); err != nil {
+				if _, err := version.IncrementCacheVersion(ctx, c.RedisClient, c.StartSpan, c.StartChildSpan, c.Semaphore, c.LogProvider, c.VersionGenerator, session, prefix, namespace, c.VersionExpire); err != nil {
 					return err
 				}
 			}
@@ -96,7 +96,7 @@ func (c *Cache) CleanCache(
 			}
 			*listLockedKey = append(*listLockedKey, lockKey)
 			// TODO: update to session pipeline after version.IncrementCacheVersion is updated to return the command instead of the result
-			if _, err := version.IncrementCacheVersion(ctx, c.RedisClient, c.Tracer, c.Logger, c.Semaphore, c.VersionGenerator, session, prefix, key, c.VersionExpire); err != nil {
+			if _, err := version.IncrementCacheVersion(ctx, c.RedisClient, c.StartSpan, c.StartChildSpan, c.Semaphore, c.LogProvider, c.VersionGenerator, session, prefix, key, c.VersionExpire); err != nil {
 				return err
 			}
 		}

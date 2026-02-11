@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +14,8 @@ import (
 )
 
 func TestVersion_CheckVersionTtl(t *testing.T) {
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
+	getLogger := adapter.GetNoOpLogger
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	namespace := "test-ttl"
@@ -128,9 +128,9 @@ func TestVersion_CheckVersionTtl(t *testing.T) {
 			resultTtl, err := CheckVersionTtl(
 				ctx,
 				client,
-				tracer,
-				logger,
+				startSpan,
 				semaphore,
+				getLogger,
 				tt.key,
 				tt.ttl,
 			)
@@ -154,8 +154,7 @@ func TestVersion_CheckVersionTtl_VerifyExpirationSet(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
+	startSpan := adapter.NoOpStartSpan
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	namespace := "test-verify-ttl"
@@ -178,9 +177,9 @@ func TestVersion_CheckVersionTtl_VerifyExpirationSet(t *testing.T) {
 	resultTtl, err := CheckVersionTtl(
 		ctx,
 		client,
-		tracer,
-		logger,
+		startSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		key,
 		ttl,
 	)
@@ -193,8 +192,6 @@ func TestVersion_CheckVersionTtl_ExistingTtlNotOverwritten(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	namespace := "test-existing-ttl"
@@ -217,9 +214,9 @@ func TestVersion_CheckVersionTtl_ExistingTtlNotOverwritten(t *testing.T) {
 	resultTtl, err := CheckVersionTtl(
 		ctx,
 		client,
-		tracer,
-		logger,
+		adapter.NoOpStartSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		key,
 		newTtl,
 	)
@@ -234,8 +231,6 @@ func TestVersion_CheckVersionTtlAsync(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	namespace := "test-async-ttl"
@@ -250,7 +245,7 @@ func TestVersion_CheckVersionTtlAsync(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	_, span := tracer.StartSpan(ctx, "test-span")
+	_, span := adapter.NoOpStartSpan(ctx, "test-span")
 
 	// Setup mock expectations for async operations
 	mock.ExpectTTL(key).SetVal(-1)
@@ -259,9 +254,10 @@ func TestVersion_CheckVersionTtlAsync(t *testing.T) {
 	// Call async TTL check
 	CheckVersionTtlAsync(
 		client,
-		tracer,
-		logger,
+		adapter.NoOpStartSpan,
+		adapter.NoOpStartChildSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		span,
 		key,
 		ttl,
@@ -279,14 +275,12 @@ func TestVersion_CheckVersionTtlAsync_ErrorHandling(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
 	semaphore := adapter.NewSemaphore(10)
 	prefix := "test-prefix"
 	ttl := 1 * time.Hour
 
 	ctx := context.Background()
-	_, span := tracer.StartSpan(ctx, "test-span")
+	_, span := adapter.NoOpStartSpan(ctx, "test-span")
 
 	// Use non-existent key to trigger error
 	nonExistentKey := prefix + ":nonexistent:version"
@@ -297,9 +291,10 @@ func TestVersion_CheckVersionTtlAsync_ErrorHandling(t *testing.T) {
 	// Call async TTL check with non-existent key
 	CheckVersionTtlAsync(
 		client,
-		tracer,
-		logger,
+		adapter.NoOpStartSpan,
+		adapter.NoOpStartChildSpan,
 		semaphore,
+		adapter.GetNoOpLogger,
 		span,
 		nonExistentKey,
 		ttl,
@@ -318,8 +313,6 @@ func TestVersion_CheckVersionTtlAsync_Concurrent(t *testing.T) {
 	client, mock := redismock.NewClientMock()
 	defer client.Close()
 
-	tracer := &adapter.NoOpTracer{}
-	logger := &adapter.NoOpLogger{}
 	semaphore := adapter.NewSemaphore(10)
 	versionGenerator := key.VersionGenerator
 	namespace := "test-concurrent-async"
@@ -327,7 +320,7 @@ func TestVersion_CheckVersionTtlAsync_Concurrent(t *testing.T) {
 	ttl := 1 * time.Hour
 
 	ctx := context.Background()
-	_, span := tracer.StartSpan(ctx, "test-span")
+	_, span := adapter.NoOpStartSpan(ctx, "test-span")
 
 	const numKeys = 5
 	keys := make([]string, numKeys)
@@ -353,9 +346,10 @@ func TestVersion_CheckVersionTtlAsync_Concurrent(t *testing.T) {
 	for _, key := range keys {
 		CheckVersionTtlAsync(
 			client,
-			tracer,
-			logger,
+			adapter.NoOpStartSpan,
+			adapter.NoOpStartChildSpan,
 			semaphore,
+			adapter.GetNoOpLogger,
 			span,
 			key,
 			ttl,

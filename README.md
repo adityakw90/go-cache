@@ -183,7 +183,7 @@ The library provides interfaces for optional observability integration. If no tr
 ```go
 type Tracer interface {
     StartSpan(ctx context.Context, name string) (context.Context, Span)
-    NewSpanFromSpan(ctx context.Context, name string, parent Span) (context.Context, Span)
+    StartChildSpan(ctx context.Context, name string, parent Span) (context.Context, Span)
 }
 
 type Span interface {

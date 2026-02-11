@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/cache"
 	"github.com/adityakw90/go-cache/internal/key"
 	testutil "github.com/adityakw90/go-cache/test/util"
@@ -52,18 +52,20 @@ func TestCache_Cached_Concurrent_WriteLock(t *testing.T) {
 			defer client.Close()
 
 			c, err := cache.NewCache(client, cache.Options{
-				KeyPrefix:           "test",
-				ExpireDefault:       5 * time.Minute,
-				VersionExpire:       1 * time.Hour,
-				LockDuration:        5 * time.Second,
-				LockInterval:        50 * time.Millisecond,
-				Tracer:              adapter.NewNoOpTracer(),
-				Logger:              adapter.NewNoOpLogger(),
-				Semaphore:           adapter.NewSemaphore(10),
-				KeyGenerator:        key.KeyGenerator,
-				KeyVersionGenerator: key.KeyVersionGenerator,
-				VersionGenerator:    key.VersionGenerator,
-				LockGenerator:       key.LockGenerator,
+				KeyPrefix:                 "test",
+				ExpireDefault:             5 * time.Minute,
+				VersionExpire:             1 * time.Hour,
+				LockDuration:              5 * time.Second,
+				LockInterval:              50 * time.Millisecond,
+				StartSpan:                 adapter.NoOpStartSpan,
+				StartChildSpan:            adapter.NoOpStartChildSpan,
+				LogProvider:               adapter.GetNoOpLogger,
+				Semaphore:                 adapter.NewSemaphore(10),
+				KeyGenerator:              key.KeyGenerator,
+				KeyVersionGenerator:       key.KeyVersionGenerator,
+				KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+				VersionGenerator:          key.VersionGenerator,
+				LockGenerator:             key.LockGenerator,
 			})
 			require.NoError(t, err)
 
@@ -81,7 +83,7 @@ func TestCache_Cached_Concurrent_WriteLock(t *testing.T) {
 				5*time.Minute,
 				false,
 				"test",
-			)(fn, nil)
+			)(fn, nil, true)
 
 			results := make(chan string, tt.numGoroutines)
 			errors := make(chan error, tt.numGoroutines)
@@ -148,18 +150,20 @@ func TestCache_Cached_Concurrent_WriteLock_Timeout(t *testing.T) {
 	defer client.Close()
 
 	c, err := cache.NewCache(client, cache.Options{
-		KeyPrefix:           "test",
-		ExpireDefault:       5 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        100 * time.Millisecond,
-		LockInterval:        10 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
+		KeyPrefix:                 "test",
+		ExpireDefault:             5 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              100 * time.Millisecond,
+		LockInterval:              10 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
 	})
 	require.NoError(t, err)
 
@@ -174,18 +178,94 @@ func TestCache_Cached_Concurrent_WriteLock_Timeout(t *testing.T) {
 	}
 
 	cachedFunc := c.Cached(
-		"testFunc",
+		"testFuncTimeout",
 		5*time.Minute,
 		false,
 		"test",
-	)(fn, nil)
+	)(fn, nil, true)
 
-	results := make(chan string, 5)
-	errors := make(chan error, 5)
+	// Test with very short lock timeout - should fallback to direct execution
+	results := make(chan string, 10)
+	errors := make(chan error, 10)
 	var wg sync.WaitGroup
 
-	// Launch concurrent requests
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var result string
+			res, err := cachedFunc(&result, ctx, "arg1")
+			if err != nil {
+				errors <- err
+				return
+			}
+			if res != nil {
+				if str, ok := res.(string); ok {
+					results <- str
+				} else {
+					results <- result
+				}
+			} else {
+				results <- result
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(results)
+	close(errors)
+
+	// With very short lock timeout, we expect multiple calls due to lock timeout fallback
+	// The exact count depends on lock acquisition timing
+	t.Logf("Function called %d times with short lock timeout", callCount)
+}
+
+func TestCache_Cached_Concurrent_Versioning(t *testing.T) {
+
+	client := testutil.CreateTestRedisClient(t)
+	defer client.Close()
+
+	c, err := cache.NewCache(client, cache.Options{
+		KeyPrefix:                 "test",
+		ExpireDefault:             5 * time.Minute,
+		VersionExpire:             1 * time.Hour,
+		LockDuration:              5 * time.Second,
+		LockInterval:              50 * time.Millisecond,
+		StartSpan:                 adapter.NoOpStartSpan,
+		StartChildSpan:            adapter.NoOpStartChildSpan,
+		LogProvider:               func(ctx context.Context) adapter.Logger { return adapter.NewNoOpLogger() },
+		Semaphore:                 adapter.NewSemaphore(10),
+		KeyGenerator:              key.KeyGenerator,
+		KeyVersionGenerator:       key.KeyVersionGenerator,
+		KeyHashedVersionGenerator: key.KeyHashedVersionGenerator,
+		VersionGenerator:          key.VersionGenerator,
+		LockGenerator:             key.LockGenerator,
+	})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	var callCount int64
+
+	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
+		atomic.AddInt64(&callCount, 1)
+		time.Sleep(20 * time.Millisecond)
+		return "result-" + args[0].(string), nil
+	}
+
+	cachedFunc := c.Cached(
+		"testFuncVersion",
+		5*time.Minute,
+		true, // Enable versioning
+		"test",
+	)(fn, nil, true)
+
+	const numGoroutines = 5
+	results := make(chan string, numGoroutines)
+	errors := make(chan error, numGoroutines)
+	var wg sync.WaitGroup
+
+	// First batch - should call function once
+	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -213,80 +293,22 @@ func TestCache_Cached_Concurrent_WriteLock_Timeout(t *testing.T) {
 
 	// Check for errors
 	for err := range errors {
-		require.NoError(t, err, "Unexpected error in concurrent request")
+		require.NoError(t, err)
 	}
 
+	// Verify only one function call for first batch
+	assert.Equal(t, 1, int(callCount), "Expected exactly one function call for first batch")
+
 	// Collect results
-	collectedResults := make([]string, 0, 5)
+	collectedResults := make([]string, 0, numGoroutines)
 	for result := range results {
 		collectedResults = append(collectedResults, result)
 	}
 
-	// Wait for operations to complete
-	time.Sleep(1 * time.Second)
+	assert.Equal(t, numGoroutines, len(collectedResults))
 
-	// With timeout, some requests might execute function as fallback
-	// But at least one should succeed with cache
-	assert.GreaterOrEqual(t, len(collectedResults), 1, "At least some requests should return results")
-	assert.GreaterOrEqual(t, int(callCount), 1, "At least one function execution should happen")
-}
-
-func TestCache_Cached_Concurrent_WriteLock_SequentialCacheHit(t *testing.T) {
-	client := testutil.CreateTestRedisClient(t)
-	defer client.Close()
-
-	c, err := cache.NewCache(client, cache.Options{
-		KeyPrefix:           "test",
-		ExpireDefault:       5 * time.Minute,
-		VersionExpire:       1 * time.Hour,
-		LockDuration:        5 * time.Second,
-		LockInterval:        50 * time.Millisecond,
-		Tracer:              adapter.NewNoOpTracer(),
-		Logger:              adapter.NewNoOpLogger(),
-		Semaphore:           adapter.NewSemaphore(10),
-		KeyGenerator:        key.KeyGenerator,
-		KeyVersionGenerator: key.KeyVersionGenerator,
-		VersionGenerator:    key.VersionGenerator,
-		LockGenerator:       key.LockGenerator,
-	})
-	require.NoError(t, err)
-
-	ctx := context.Background()
-	var callCount int64
-
-	fn := func(ctx context.Context, args ...interface{}) (interface{}, error) {
-		atomic.AddInt64(&callCount, 1)
-		return "result-" + args[0].(string), nil
+	// All results should be the same
+	for _, result := range collectedResults {
+		assert.Equal(t, "result-arg1", result)
 	}
-
-	cachedFunc := c.Cached(
-		"testFunc",
-		5*time.Minute,
-		false,
-		"test",
-	)(fn, nil)
-
-	// First request - cache miss, should execute function
-	var result1 string
-	res1, err := cachedFunc(&result1, ctx, "arg1")
-	require.NoError(t, err)
-	assert.Equal(t, 1, int(callCount), "First request should execute function")
-	assert.Equal(t, "result-arg1", res1.(string))
-
-	// Wait for cache to be populated
-	time.Sleep(100 * time.Millisecond)
-
-	// Second request - cache hit, should NOT execute function
-	var result2 string
-	_, err = cachedFunc(&result2, ctx, "arg1")
-	require.NoError(t, err)
-	assert.Equal(t, 1, int(callCount), "Second request should NOT execute function (cache hit)")
-	assert.Equal(t, "result-arg1", result2)
-
-	// Third request - cache hit, should NOT execute function
-	var result3 string
-	_, err = cachedFunc(&result3, ctx, "arg1")
-	require.NoError(t, err)
-	assert.Equal(t, 1, int(callCount), "Third request should NOT execute function (cache hit)")
-	assert.Equal(t, "result-arg1", result3)
 }

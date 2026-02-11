@@ -9,8 +9,28 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Constants for lock configuration.
+const (
+	// maxRetryIntervalFactor determines the maximum retry interval as a fraction
+	// of the total wait timeout. This prevents excessively long retry intervals
+	// during lock acquisition attempts.
+	maxRetryIntervalFactor = 2
+)
+
 // AcquireMultipleLock attempts to acquire multiple locks atomically.
-// It uses a pipeline to batch SETNX operations.
+// It uses a pipeline to batch SETNX operations for efficient lock acquisition.
+// Parameters:
+//   - ctx: context for cancellation and timeouts
+//   - redisClient: Redis client instance
+//   - keys: list of lock keys to acquire
+//   - timeout: individual lock timeout duration
+//   - interval: retry interval between acquisition attempts
+//   - wait: if true, retry until waitTimeout; if false, attempt once
+//   - waitTimeout: maximum time to wait for all locks to be acquired
+//
+// Returns:
+//   - slice of acquired LockData for successful locks
+//   - error if acquisition fails or times out
 func AcquireMultipleLock(
 	ctx context.Context,
 	redisClient *redis.Client,
@@ -38,7 +58,7 @@ func AcquireMultipleLock(
 
 	// Retry mechanism with waitTimeout
 	retryInterval := interval
-	maxInterval := waitTimeout / 2
+	maxInterval := waitTimeout / maxRetryIntervalFactor
 	for {
 		pipe := redisClient.Pipeline()
 		var results []*redis.BoolCmd
@@ -85,7 +105,7 @@ func AcquireMultipleLock(
 				acquired, err := results[resultIndex].Result()
 				resultIndex++
 				if err != nil {
-					locks[i].Error = fmt.Errorf("error acquiring lock for key %s: %w", locks[i].Key, err)
+					// Individual lock acquisition failed, continue to next
 					continue
 				}
 
@@ -93,9 +113,6 @@ func AcquireMultipleLock(
 				if acquired {
 					locks[i].Acquired = true
 					acquiredLocks = append(acquiredLocks, locks[i])
-				} else {
-					// If lock wasn't acquired, mark it as failed
-					locks[i].Error = ErrLockAcquireFailed
 				}
 			}
 		}
@@ -120,22 +137,32 @@ func AcquireMultipleLock(
 
 		// If we're out of time, release acquired locks and return
 		select {
+		case <-time.After(retryInterval):
+			// Retry after the retry interval
+			// Increase the interval (exponential backoff)
+			retryInterval = time.Duration(float64(retryInterval) * 1.5)
+			if retryInterval > maxInterval {
+				retryInterval = maxInterval
+			}
+			continue
 		case <-timeoutCtx.Done():
 			ReleaseMultipleLock(ctx, redisClient, acquiredLocks)
 			return nil, fmt.Errorf("failed to acquire locks within waitTimeout of %s", waitTimeout)
-		case <-time.After(retryInterval):
-			// Retry after the interval
 		}
 
-		// Increase the interval (exponential backoff)
-		retryInterval = time.Duration(float64(retryInterval) * 1.5)
-		if retryInterval > maxInterval {
-			retryInterval = maxInterval
-		}
 	}
 }
 
-// ReleaseMultipleLock releases multiple locks using a pipeline.
+// ReleaseMultipleLock releases multiple locks atomically using a pipeline.
+// Each lock release uses a Lua script to ensure only the lock owner can release it.
+// Parameters:
+//   - ctx: context for cancellation and timeouts
+//   - redisClient: Redis client instance
+//   - locks: slice of LockData to release (nil entries are skipped)
+//
+// Returns:
+//   - error if any lock release fails
+//   - nil if all locks released successfully or locks slice is empty
 func ReleaseMultipleLock(ctx context.Context, redisClient *redis.Client, locks []*LockData) error {
 	if len(locks) == 0 {
 		return nil
@@ -171,20 +198,19 @@ func ReleaseMultipleLock(ctx context.Context, redisClient *redis.Client, locks [
 		result, err := results[resultIndex].Result()
 		resultIndex++
 		if err != nil {
-			lock.Error = fmt.Errorf("error releasing lock for key %s: %w", lock.Key, err)
-			continue
+			return fmt.Errorf("error releasing lock for key %s: %w", lock.Key, err)
 		}
 
 		// Process the result from the Lua script
 		switch result {
 		case int64(-1):
-			lock.Error = ErrLockReleaseUnlocked
+			return ErrLockReleaseUnlocked
 		case int64(0):
-			lock.Error = ErrLockReleaseForbidden
+			return ErrLockReleaseForbidden
 		case int64(1):
 			lock.Released = true
 		default:
-			lock.Error = fmt.Errorf("unexpected result from lock release script for key %s: %v", lock.Key, result)
+			return fmt.Errorf("unexpected result from lock release script for key %s: %v", lock.Key, result)
 		}
 	}
 

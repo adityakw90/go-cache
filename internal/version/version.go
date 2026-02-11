@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/adityakw90/go-cache/internal/key"
 	"github.com/redis/go-redis/v9"
 )
@@ -16,18 +16,19 @@ import (
 func GetCacheVersion(
 	ctx context.Context,
 	redisClient *redis.Client,
-	tracer adapter.Tracer,
-	logger adapter.Logger,
+	startSpan adapter.StartSpan,
+	startChildSpan adapter.StartChildSpan,
 	semaphore adapter.Semaphore,
+	getLogger func(ctx context.Context) adapter.Logger,
 	versionGenerator key.KeyGeneratorFunc,
 	versionExpire time.Duration,
 	namespace string,
 	prefix string,
 ) (int, error) {
-	ctx, cacheSpan := tracer.StartSpan(ctx, "cache.getCacheVersion")
+	ctx, cacheSpan := startSpan(ctx, "cache.getCacheVersion")
 	defer cacheSpan.End()
 
-	logger = logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := getLogger(ctx)
 
 	data := map[string]string{
 		"prefix":    prefix,
@@ -73,7 +74,10 @@ func GetCacheVersion(
 	}
 
 	// Asynchronously check TTL
-	CheckVersionTtlAsync(redisClient, tracer, logger, semaphore, cacheSpan, key, versionExpire)
+	CheckVersionTtlAsync(
+		redisClient, startSpan, startChildSpan, semaphore, getLogger,
+		cacheSpan, key, versionExpire,
+	)
 
 	logger.Debug("version initialized", map[string]interface{}{
 		"version": versionInt,
@@ -87,19 +91,20 @@ func GetCacheVersion(
 func IncrementCacheVersion(
 	ctx context.Context,
 	redisClient *redis.Client,
-	tracer adapter.Tracer,
-	logger adapter.Logger,
+	startSpan adapter.StartSpan,
+	startChildSpan adapter.StartChildSpan,
 	semaphore adapter.Semaphore,
+	getLogger func(ctx context.Context) adapter.Logger,
 	versionGenerator key.KeyGeneratorFunc,
 	session redis.Pipeliner,
 	prefix string,
 	namespace string,
 	ttl time.Duration,
 ) (int, error) {
-	ctx, cacheSpan := tracer.StartSpan(ctx, "cache.incrementCacheVersion")
+	ctx, cacheSpan := startSpan(ctx, "cache.incrementCacheVersion")
 	defer cacheSpan.End()
 
-	logger = logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := getLogger(ctx)
 
 	data := map[string]string{
 		"prefix":    prefix,
@@ -128,7 +133,10 @@ func IncrementCacheVersion(
 	}
 
 	// Asynchronously check TTL
-	CheckVersionTtlAsync(redisClient, tracer, logger, semaphore, cacheSpan, key, ttl)
+	CheckVersionTtlAsync(
+		redisClient, startSpan, startChildSpan, semaphore, getLogger,
+		cacheSpan, key, ttl,
+	)
 
 	logger.Debug("version incremented", map[string]interface{}{
 		"version": versionInt,

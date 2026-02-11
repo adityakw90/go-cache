@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/adityakw90/go-cache/internal/adapter"
+	"github.com/adityakw90/go-cache/adapter"
 	"github.com/redis/go-redis/v9"
 )
 
 func CheckVersionTtl(
 	ctx context.Context,
 	redisClient *redis.Client,
-	tracer adapter.Tracer,
-	logger adapter.Logger,
+	startSpan adapter.StartSpan,
 	semaphore adapter.Semaphore,
+	getLogger func(ctx context.Context) adapter.Logger,
 	key string,
 	ttl time.Duration,
 ) (time.Duration, error) {
-	ctx, cacheSpan := tracer.StartSpan(ctx, "cache.checkVersionTtl")
+	ctx, cacheSpan := startSpan(ctx, "cache.checkVersionTtl")
 	defer cacheSpan.End()
 
-	logger = logger.WithSpanContext(cacheSpan.SpanContext())
+	logger := getLogger(ctx)
 
 	// Get TTL
 	ttlResult, err := redisClient.TTL(ctx, key).Result()
@@ -59,10 +59,11 @@ func CheckVersionTtl(
 // This is exported for testing purposes.
 func CheckVersionTtlAsync(
 	redisClient *redis.Client,
-	tracer adapter.Tracer,
-	logger adapter.Logger,
+	startSpan adapter.StartSpan,
+	startChildSpan adapter.StartChildSpan,
 	semaphore adapter.Semaphore,
-	span adapter.Span,
+	getLogger func(ctx context.Context) adapter.Logger,
+	parentSpan adapter.Span,
 	key string,
 	ttl time.Duration,
 ) {
@@ -70,16 +71,16 @@ func CheckVersionTtlAsync(
 		semaphore.Acquire()
 		defer semaphore.Release()
 
-		newCtx, cacheTtlSpan := tracer.NewSpanFromSpan(
+		newCtx, cacheTtlSpan := startChildSpan(
 			context.Background(),
 			"cache.checkVersionTtlAsync",
-			span,
+			parentSpan,
 		)
 		defer cacheTtlSpan.End()
 
-		loggerBg := logger.WithSpanContext(cacheTtlSpan.SpanContext())
+		loggerBg := getLogger(newCtx)
 
-		ttlResult, err := CheckVersionTtl(newCtx, redisClient, tracer, loggerBg, semaphore, key, ttl)
+		ttlResult, err := CheckVersionTtl(newCtx, redisClient, startSpan, semaphore, getLogger, key, ttl)
 		if err != nil {
 			loggerBg.Error("failed to check version TTL asynchronously", map[string]interface{}{
 				"error": err.Error(),
