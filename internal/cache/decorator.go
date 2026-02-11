@@ -345,10 +345,8 @@ func (c *Cache) Cached(
 						"error": err.Error(),
 					})
 				}
-				timer := time.NewTimer(c.LockInterval)
-				defer timer.Stop()
 				select {
-				case <-timer.C:
+				case <-time.After(c.LockInterval):
 					// Retry after the retry interval
 					continue
 				case <-timeoutCtx.Done():

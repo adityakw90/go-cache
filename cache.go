@@ -20,6 +20,7 @@ import (
 //	    cache.WithTracer(myTracer),
 //	    cache.WithLogger(myLogger),
 //	)
+
 func NewCache(redisClient *redis.Client, opts ...Option) (Cache, error) {
 	// Build options from functional options
 	rootOpts := defaultOptions()
