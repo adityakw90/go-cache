@@ -50,11 +50,10 @@ func AcquireLock(
 		}
 
 		// Wait for the retry interval before trying again
-		timer := time.NewTimer(interval)
-		defer timer.Stop()
 		select {
-		case <-timer.C:
+		case <-time.After(interval):
 			// Retry after the retry interval
+			continue
 		case <-timeoutCtx.Done():
 			// Timeout exceeded
 			return lock, fmt.Errorf("failed to acquire lock within the timeout of %s", waitTimeout)
