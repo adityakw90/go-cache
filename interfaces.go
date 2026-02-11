@@ -44,30 +44,6 @@ type Cache interface {
 	Cached(keyName string, ttl interface{}, versioning bool, prefix string) func(fn func(ctx context.Context, args ...interface{}) (interface{}, error), customKeyFunc CustomKeyFunction, useHashKey bool) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error)
 }
 
-// re-export types from adapter package for convenience.
-// These types are used for tracing, logging, and concurrency control.
-
-// Span represents a single trace span.
-// type Span = adapter.Span
-
-// // SpanContext contains the state for tracing propagation.
-// type SpanContext = adapter.SpanContext
-
-// // SpanAttribute is a key-value pair for span metadata.
-// type SpanAttribute = adapter.SpanAttribute
-
-// // StartSpan is a function type for starting a new span.
-// type StartSpan = adapter.StartSpan
-
-// // StartChildSpan is a function type for starting a child span.
-// type StartChildSpan = adapter.StartChildSpan
-
-// Logger provides structured logging capabilities.
-// type Logger = adapter.Logger
-
-// // Semaphore provides concurrency control.
-// type Semaphore = adapter.Semaphore
-
 // re-export custom key function type from key package.
 type CustomKeyFunction = key.CustomKeyFunction
 
