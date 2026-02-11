@@ -524,8 +524,8 @@ func TestWithLogProvider(t *testing.T) {
 			name:        "nil log provider does not change",
 			logProvider: nil,
 			checkFunc: func(t *testing.T, opts *options, originalLogProvider func(ctx context.Context) adapter.Logger) {
-				// Should keep the original log provider if nil is passed
 				assert.Nil(t, opts.getLogger, "getLogger should remain nil when nil is passed")
+				assert.Nil(t, originalLogProvider, "originalLogProvider should remain nil when nil is passed")
 			},
 		},
 	}
