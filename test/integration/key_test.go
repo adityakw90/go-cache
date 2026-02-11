@@ -102,6 +102,8 @@ func TestIntegration_KeyGenerator_Format(t *testing.T) {
 			namespace := "testKey"
 			version := 0
 			if tt.versioning {
+				// the redis still empty because we have fresh redis by the CreateTestRedisClient
+				// so the version is 1
 				version = 1
 			}
 
