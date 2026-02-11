@@ -136,21 +136,20 @@ func AcquireMultipleLock(
 		}
 
 		// If we're out of time, release acquired locks and return
-		timer := time.NewTimer(retryInterval)
-		defer timer.Stop()
 		select {
+		case <-time.After(retryInterval):
+			// Retry after the retry interval
+			// Increase the interval (exponential backoff)
+			retryInterval = time.Duration(float64(retryInterval) * 1.5)
+			if retryInterval > maxInterval {
+				retryInterval = maxInterval
+			}
+			continue
 		case <-timeoutCtx.Done():
 			ReleaseMultipleLock(ctx, redisClient, acquiredLocks)
 			return nil, fmt.Errorf("failed to acquire locks within waitTimeout of %s", waitTimeout)
-		case <-timer.C:
-			// Retry after the interval
 		}
 
-		// Increase the interval (exponential backoff)
-		retryInterval = time.Duration(float64(retryInterval) * 1.5)
-		if retryInterval > maxInterval {
-			retryInterval = maxInterval
-		}
 	}
 }
 
