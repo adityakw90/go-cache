@@ -143,7 +143,7 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 			tt.setupMock(t, mock, key)
 			ctx := context.Background()
 
-			getSession := func() redis.Pipeliner {
+			GetSession := func() redis.Pipeliner {
 				return client.Pipeline()
 			}
 
@@ -159,7 +159,7 @@ func TestVersion_InvalidateVersion(t *testing.T) {
 				keyPrefix,
 				tt.namespace,
 				tt.prefix,
-				getSession,
+				GetSession,
 			)
 
 			if tt.wantErr {
@@ -204,7 +204,7 @@ func TestVersion_InvalidateVersion_PipelineExecution(t *testing.T) {
 	mock.ExpectTTL(key).SetVal(-1)
 	mock.ExpectExpire(key, versionExpire).SetVal(true)
 
-	getSession := func() redis.Pipeliner {
+	GetSession := func() redis.Pipeliner {
 		return client.Pipeline()
 	}
 
@@ -220,7 +220,7 @@ func TestVersion_InvalidateVersion_PipelineExecution(t *testing.T) {
 		keyPrefix,
 		namespace,
 		prefix,
-		getSession,
+		GetSession,
 	)
 	require.NoError(t, err)
 
@@ -257,7 +257,7 @@ func TestVersion_InvalidateVersion_MultipleInvalidations(t *testing.T) {
 		mock.ExpectIncr(key).SetVal(int64(i))
 	}
 
-	getSession := func() redis.Pipeliner {
+	GetSession := func() redis.Pipeliner {
 		return client.Pipeline()
 	}
 
@@ -275,7 +275,7 @@ func TestVersion_InvalidateVersion_MultipleInvalidations(t *testing.T) {
 			keyPrefix,
 			namespace,
 			prefix,
-			getSession,
+			GetSession,
 		)
 		require.NoError(t, err)
 	}
@@ -314,7 +314,7 @@ func TestVersion_InvalidateVersion_DifferentNamespaces(t *testing.T) {
 		mock.ExpectIncr(key).SetVal(1)
 	}
 
-	getSession := func() redis.Pipeliner {
+	GetSession := func() redis.Pipeliner {
 		return client.Pipeline()
 	}
 
@@ -332,7 +332,7 @@ func TestVersion_InvalidateVersion_DifferentNamespaces(t *testing.T) {
 			keyPrefix,
 			ns,
 			prefix,
-			getSession,
+			GetSession,
 		)
 		require.NoError(t, err)
 	}
@@ -368,7 +368,7 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 	// So the error happens in IncrementCacheVersion, not during Exec()
 	mock.ExpectIncr(key).SetErr(errors.New("redis connection error"))
 
-	getSession := func() redis.Pipeliner {
+	GetSession := func() redis.Pipeliner {
 		return client.Pipeline()
 	}
 
@@ -384,7 +384,7 @@ func TestVersion_InvalidateVersion_PipelineError(t *testing.T) {
 		keyPrefix,
 		namespace,
 		prefix,
-		getSession,
+		GetSession,
 	)
 
 	// Should get error during IncrementCacheVersion (before Exec is called)

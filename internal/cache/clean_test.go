@@ -170,7 +170,7 @@ func TestCache_CleanCache(t *testing.T) {
 			key:    "testKey",
 			params: nil,
 			session: func(c *Cache) interface{} {
-				return c.getSession()
+				return c.GetSession()
 			},
 			execute:  true,
 			lockKeys: nil,
