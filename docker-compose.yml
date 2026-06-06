@@ -1,9 +1,0 @@
-version: "3.3"
-
-services:
-  redis:
-    container_name: go-redis
-    hostname: go-redis
-    image: redis:8.4-alpine
-    ports:
-      - "6379:6379"
