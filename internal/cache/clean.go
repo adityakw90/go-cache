@@ -34,7 +34,7 @@ func (c *Cache) CleanCache(
 	// Check if a Redis session (pipeline) is provided, if not, create a new session
 	if session == nil {
 		logger.Debug("creating session cache", nil)
-		session = c.getSession()
+		session = c.GetSession()
 	}
 	if listLockedKey == nil {
 		listLockedKey = &[]string{}

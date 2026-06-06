@@ -42,6 +42,9 @@ type Cache interface {
 	//   - useHashKey: if true, uses a hashed version of the key
 	// Returns a decorator function that wraps the target function.
 	Cached(keyName string, ttl interface{}, versioning bool, prefix string) func(fn func(ctx context.Context, args ...interface{}) (interface{}, error), customKeyFunc CustomKeyFunction, useHashKey bool) func(resultType interface{}, ctx context.Context, args ...interface{}) (interface{}, error)
+
+	// GetSession returns a Redis pipeline session.
+	GetSession() redis.Pipeliner
 }
 
 // re-export custom key function type from key package.

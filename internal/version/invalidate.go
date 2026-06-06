@@ -23,7 +23,7 @@ func InvalidateVersion(
 	keyPrefix string,
 	namespace string,
 	prefix string,
-	getSession func() redis.Pipeliner,
+	GetSession func() redis.Pipeliner,
 ) error {
 	ctx, cacheSpan := startSpan(ctx, "cache.InvalidateVersion")
 	defer cacheSpan.End()
@@ -40,7 +40,7 @@ func InvalidateVersion(
 	}
 
 	// Use pipeline for atomic operation
-	session := getSession()
+	session := GetSession()
 	_, err := IncrementCacheVersion(
 		ctx, redisClient, startSpan, startChildSpan, semaphore, getLogger,
 		versionGenerator, session, prefix, namespace, versionExpire,
